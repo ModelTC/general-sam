@@ -2,9 +2,11 @@
 
 A general suffix automaton implementation in Rust.
 
-[![the suffix automaton of abcbc](https://oi-wiki.org/string/images/SAM/SA_suffix_links.svg)][sam-oi-wiki]
-(The suffix automaton of abcbc, image from [后缀自动机 - OI Wiki][sam-oi-wiki].)
+|         [![the suffix automaton of abcbc][sam-of-abcbc]][sam-oi-wiki]          |
+| :----------------------------------------------------------------------------: |
+| The suffix automaton of abcbc, image from [后缀自动机 - OI Wiki][sam-oi-wiki]. |
 
+[sam-of-abcbc]: https://oi-wiki.org/string/images/SAM/SA_suffix_links.svg
 [sam-oi-wiki]: https://oi-wiki.org/string/sam/
 
 ## Examples
