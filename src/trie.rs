@@ -51,18 +51,24 @@ impl<T: Ord + Clone> Default for Trie<T> {
 
 impl<T: Ord + Clone> Trie<T> {
     pub fn get_state(&self, node_id: usize) -> State<T> {
+        if node_id >= self.node_pool.len() {
+            return State {
+                trie: self,
+                node_id: TRIE_NIL_NODE_ID,
+            };
+        }
         State {
             trie: self,
             node_id,
         }
     }
 
-    pub fn get_node(&self, node_id: usize) -> &Node<T> {
-        &self.node_pool[node_id]
+    pub fn get_node(&self, node_id: usize) -> Option<&Node<T>> {
+        self.node_pool.get(node_id)
     }
 
     pub fn get_root_node(&self) -> &Node<T> {
-        self.get_node(TRIE_ROOT_NODE_ID)
+        self.get_node(TRIE_ROOT_NODE_ID).unwrap()
     }
 
     pub fn get_root_state(&self) -> State<T> {
@@ -119,21 +125,24 @@ impl<'s, T: Ord + Clone> State<'s, T> {
         self.node_id == TRIE_ROOT_NODE_ID
     }
 
-    pub fn get_node(&self) -> &'s Node<T> {
-        &self.trie.node_pool[self.node_id]
+    pub fn get_node(&self) -> Option<&'s Node<T>> {
+        self.trie.get_node(self.node_id)
     }
 
     pub fn goto_parent(&mut self) {
-        self.node_id = self.get_node().parent;
+        if let Some(node) = self.get_node() {
+            self.node_id = node.parent;
+        } else {
+            self.node_id = TRIE_NIL_NODE_ID;
+        }
     }
 
     pub fn goto(&mut self, t: &T) {
-        self.node_id = self
-            .get_node()
-            .trans
-            .get(t)
-            .copied()
-            .unwrap_or(TRIE_NIL_NODE_ID)
+        if let Some(node) = self.get_node() {
+            self.node_id = node.trans.get(t).copied().unwrap_or(TRIE_NIL_NODE_ID)
+        } else {
+            self.node_id = TRIE_NIL_NODE_ID;
+        }
     }
 }
 
@@ -148,11 +157,11 @@ impl<'s, T: Ord + Clone> TrieNodeAlike for State<'s, T> {
     type NextStateIter = NextStateIter<'s, T>;
 
     fn is_accepting(&self) -> bool {
-        self.get_node().accept
+        self.get_node().map(|x| x.accept).unwrap_or(false)
     }
 
     fn next_states(self) -> NextStateIter<'s, T> {
-        let iter = self.get_node().trans.iter();
+        let iter = self.get_node().unwrap().trans.iter();
         NextStateIter { state: self, iter }
     }
 }
@@ -161,16 +170,14 @@ impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
     type Item = (T, State<'s, T>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some((t, next_node_id)) = self.iter.next() {
-            Some((t.clone(), self.state.trie.get_state(*next_node_id)))
-        } else {
-            None
-        }
+        self.iter
+            .next()
+            .map(|(t, next_node_id)| (t.clone(), self.state.trie.get_state(*next_node_id)))
     }
 }
 
 impl<'s, T: Ord + Clone> NextStateIter<'s, T> {
-    pub fn get_state(&self) -> &State<'s, T> {
+    pub fn get_state(&self) -> &State<T> {
         &self.state
     }
 }

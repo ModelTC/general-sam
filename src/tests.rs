@@ -87,9 +87,9 @@ fn test_trie_suffix(vocab: &[&str]) {
                             "{}: {:?} {:?}",
                             word[i..j].to_owned(),
                             is_suffix(&word[i..j]),
-                            state.get_node().is_accepting()
+                            state.is_accepting()
                         );
-                        assert!(is_suffix(&word[i..j]) ^ !(state.get_node().is_accepting()));
+                        assert!(is_suffix(&word[i..j]) ^ !(state.is_accepting()));
                     }
                 })
         });

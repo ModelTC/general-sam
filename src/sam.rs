@@ -79,13 +79,21 @@ impl<T: Ord + Clone> Default for GeneralSAM<T> {
 
 impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn get_root_state(&self) -> State<T> {
-        State {
-            sam: self,
-            node_id: SAM_ROOT_NODE_ID,
+        self.get_state(SAM_ROOT_NODE_ID)
+    }
+
+    pub fn get_state(&self, node_id: usize) -> State<T> {
+        if node_id < self.node_pool.len() {
+            State { sam: self, node_id }
+        } else {
+            State {
+                sam: self,
+                node_id: SAM_NIL_NODE_ID,
+            }
         }
     }
 
-    pub fn get_topo_order(&self) -> TopoOrderStateIter<'_, T> {
+    pub fn get_topo_order(&self) -> TopoOrderStateIter<T> {
         TopoOrderStateIter {
             sam: self,
             head: 0,
@@ -154,7 +162,8 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.topo_order.iter().rev().for_each(|node_id| {
             let link_id = self.node_pool[*node_id].link;
             self.node_pool[link_id].accept |= self.node_pool[*node_id].accept;
-        })
+        });
+        self.node_pool[SAM_NIL_NODE_ID].accept = false;
     }
 
     fn alloc_node(&mut self, node: Node<T>) -> usize {
@@ -228,20 +237,31 @@ impl<'s, T: Ord + Clone> State<'s, T> {
         self.node_id == SAM_ROOT_NODE_ID
     }
 
-    pub fn get_node(&self) -> &'s Node<T> {
-        &self.sam.node_pool[self.node_id]
+    pub fn is_accepting(&self) -> bool {
+        self.get_node()
+            .map(|node| node.is_accepting())
+            .unwrap_or(false)
+    }
+
+    pub fn get_node(&self) -> Option<&'_ Node<T>> {
+        self.sam.node_pool.get(self.node_id)
     }
 
     pub fn goto_suffix_parent(&mut self) {
-        self.node_id = self.get_node().link;
+        if let Some(node) = self.get_node() {
+            self.node_id = node.link;
+        } else {
+            self.node_id = SAM_NIL_NODE_ID;
+        }
     }
 
     pub fn goto(&mut self, t: &T) {
-        self.node_id = if let Some(next_node_id) = self.get_node().trans.get(t) {
-            *next_node_id
-        } else {
-            SAM_NIL_NODE_ID
-        }
+        self.node_id =
+            if let Some(next_node_id) = self.get_node().and_then(|node| node.trans.get(t)) {
+                *next_node_id
+            } else {
+                SAM_NIL_NODE_ID
+            }
     }
 
     pub fn feed_ref<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
