@@ -5,6 +5,8 @@ pub enum TravelEvent<NodeType, KeyType> {
     Pop(NodeType),
 }
 
+/// This trait provides the essential interfaces required by `GeneralSAM`
+/// to construct a suffix automaton from structures that form a prefix tree.
 pub trait TrieNodeAlike {
     type InnerType;
     type NextStateIter: Iterator<Item = (Self::InnerType, Self)>;
@@ -56,6 +58,9 @@ pub trait TrieNodeAlike {
     }
 }
 
+// This struct implements `TrieNodeAlike` for any iterator.
+//
+// It can be used to construct a suffix automaton directly from a sequence.
 pub struct IterAsChain<Iter: Iterator> {
     iter: Iter,
     val: Option<Iter::Item>,
