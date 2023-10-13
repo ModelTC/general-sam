@@ -39,7 +39,7 @@ class Trie:
     ) -> TrieNode:
         ...
 
-    def num_of_node(self) -> int:
+    def num_of_nodes(self) -> int:
         ...
 
 
@@ -81,5 +81,5 @@ class GeneralSAM:
     def get_state(self, node_id: int) -> GeneralSAMState:
         ...
 
-    def num_of_node(self) -> int:
+    def num_of_nodes(self) -> int:
         ...
