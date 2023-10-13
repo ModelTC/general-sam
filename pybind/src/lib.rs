@@ -180,7 +180,7 @@ impl GeneralSAMState {
         let tn = trie
             .0
             .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        self.0.bfs_along(tn, self.1, |event| match event {
+        self.0.dfs_along(tn, self.1, |event| match event {
             TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
                 in_stack_callback
                     .call1(
@@ -216,7 +216,7 @@ impl GeneralSAMState {
         let tn = trie
             .0
             .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        self.0.dfs_along(tn, self.1, |event| match event {
+        self.0.bfs_along(tn, self.1, |event| match event {
             TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
                 in_stack_callback
                     .call1(
