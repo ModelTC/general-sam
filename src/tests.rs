@@ -1,6 +1,64 @@
 use crate::{sam::GeneralSAM, trie::Trie};
 
 #[test]
+fn test_example_from_chars() {
+    let sam_from_chars = GeneralSAM::construct_from_chars("abcbc".chars());
+    // => GeneralSAM<char>
+
+    let state = sam_from_chars.get_root_state();
+    assert!(state.is_root());
+    let state = state.feed_chars("b");
+    assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_chars("c");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_chars("bc");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_chars("bc");
+    assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
+}
+
+#[test]
+fn test_example_from_bytes() {
+    let sam_from_bytes = GeneralSAM::construct_from_bytes("abcbc");
+    // => GeneralSAM<u8>
+
+    let state = sam_from_bytes.get_root_state();
+    assert!(state.is_root());
+    let state = state.feed_bytes("b");
+    assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_bytes("c");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_bytes("bc");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_bytes("bc");
+    assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
+}
+
+#[test]
+fn test_example_from_trie() {
+    let mut trie = Trie::default();
+
+    trie.insert_iter("hello".chars());
+    trie.insert_iter("Chielo".chars());
+
+    let sam_from_trie: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
+
+    let state = sam_from_trie.get_root_state();
+    assert!(state.is_root());
+    let state = state.feed_chars("l");
+    assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_chars("o");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+
+    let state = sam_from_trie.get_root_state();
+    assert!(state.is_root());
+    let state = state.feed_chars("Chie");
+    assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
+    let state = state.feed_chars("lo");
+    assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
+}
+
+#[test]
 fn test_simple_bytes() {
     let sam = GeneralSAM::construct_from_bytes("abcbc".as_bytes().iter());
     println!("sam: {:?}", sam);
