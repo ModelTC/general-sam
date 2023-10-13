@@ -5,7 +5,7 @@
 A general suffix automaton implementation in Rust.
 
 Python bindings and some utilities are also available.
-Please check out [`pybind`](./pybind/).
+Please check out [`general-sam-py`](https://github.com/ModelTC/general-sam-py).
 
 |         [![the suffix automaton of abcbc][sam-of-abcbc]][sam-oi-wiki]          |
 | :----------------------------------------------------------------------------: |
