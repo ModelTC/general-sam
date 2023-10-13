@@ -12,6 +12,8 @@ and some utilities.
 
 ## Usage
 
+### `GeneralSAM`
+
 ```python
 from general_sam import GeneralSAM
 
@@ -66,6 +68,8 @@ assert not state.is_accepting() and not state.is_nil()
 state = fetch_state('bye')
 assert not state.is_accepting() and state.is_nil()
 ```
+
+### `VocabPrefixAutomaton`
 
 ```python
 from general_sam import VocabPrefixAutomaton, CountInfo

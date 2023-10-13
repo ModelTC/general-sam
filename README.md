@@ -2,6 +2,9 @@
 
 A general suffix automaton implementation in Rust.
 
+Python bindings and some utilities are also available.
+Please check out [`pybind`](./pybind/).
+
 |         [![the suffix automaton of abcbc][sam-of-abcbc]][sam-oi-wiki]          |
 | :----------------------------------------------------------------------------: |
 | The suffix automaton of abcbc, image from [后缀自动机 - OI Wiki][sam-oi-wiki]. |
