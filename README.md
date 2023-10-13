@@ -75,7 +75,7 @@ assert!(sam.get_root_state().feed_chars("bye").is_nil());
 
 ## License
 
-- &copy; 2023 Chielo Newctle <ChieloNewctle@gmail.com>
+- &copy; 2023 Chielo Newctle \<ChieloNewctle@gmail.com\>
 - &copy; 2023 ModelTC Team
 
 This project is licensed under either of
