@@ -169,6 +169,7 @@ impl Trie {
 struct GeneralSAM(Arc<Either<sam::GeneralSAM<char>, sam::GeneralSAM<u8>>>);
 
 #[pyclass]
+#[derive(Clone)]
 struct GeneralSAMState(
     Arc<Either<sam::GeneralSAM<char>, sam::GeneralSAM<u8>>>,
     usize,
@@ -227,6 +228,10 @@ impl GeneralSAMState {
                 .map(|node| node.get_suffix_parent_id())
                 .unwrap_or(sam::SAM_NIL_NODE_ID)
         })
+    }
+
+    fn copy(&self) -> Self {
+        self.clone()
     }
 
     fn goto_suffix_parent(&mut self) {

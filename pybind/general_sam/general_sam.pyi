@@ -96,6 +96,9 @@ class GeneralSAMState:
     def get_suffix_parent_id(self) -> int:
         ...
 
+    def copy(self) -> 'GeneralSAMState':
+        ...
+
     def goto_suffix_parent(self):
         ...
 
