@@ -1,5 +1,6 @@
 pub mod sam;
 pub mod trie_alike;
+pub mod trie;
 
 #[cfg(test)]
 mod tests {

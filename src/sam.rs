@@ -2,31 +2,22 @@ use std::collections::{BTreeMap, VecDeque};
 
 use crate::trie_alike::{ByteChain, TrieNodeAlike};
 
-#[derive(Clone, Debug)]
-pub struct Node<T>
-where
-    T: Ord + Copy,
-{
+#[derive(Debug, Clone)]
+pub struct Node<T: Ord + Copy> {
     trans: BTreeMap<T, usize>,
     accept: bool,
     len: usize,
     link: usize,
 }
 
-#[derive(Debug)]
-pub struct GeneralSAM<T>
-where
-    T: Ord + Copy,
-{
+#[derive(Debug, Clone)]
+pub struct GeneralSAM<T: Ord + Copy> {
     node_pool: Vec<Node<T>>,
     topo_order: Vec<usize>,
 }
 
-#[derive(Debug)]
-pub struct State<'s, T>
-where
-    T: Ord + Copy,
-{
+#[derive(Debug, Clone)]
+pub struct State<'s, T: Ord + Copy> {
     pub sam: &'s GeneralSAM<T>,
     pub node_id: usize,
 }
@@ -39,6 +30,14 @@ impl<T: Ord + Copy> Node<T> {
             len,
             link,
         }
+    }
+
+    pub fn is_accepting(&self) -> bool {
+        self.accept
+    }
+
+    pub fn max_suffix_len(&self) -> usize {
+        self.len
     }
 }
 
@@ -86,7 +85,10 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         }
     }
 
-    pub fn construct_from_trie<TN: TrieNodeAlike<T>>(node: TN) -> Self {
+    pub fn construct_from_trie<TN: TrieNodeAlike>(node: TN) -> Self
+    where
+        TN::InnerType: Into<T>,
+    {
         let mut sam = Self::default();
 
         let accept_empty_string = node.is_accepting();
@@ -100,25 +102,28 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         sam
     }
 
-    fn build_with_trie<TN: TrieNodeAlike<T>>(&mut self, node: TN) {
+    fn build_with_trie<TN: TrieNodeAlike>(&mut self, node: TN)
+    where
+        TN::InnerType: Into<T>,
+    {
         let mut queue = VecDeque::new();
         queue.push_back((SAM_ROOT_NODE_ID, node));
         while let Some((last_node_id, tn)) = queue.pop_front() {
-            for (key, next_tn) in tn.next_states() {
+            tn.next_states().for_each(|(key, next_tn)| {
                 let new_node_id = self.insert_node_trans(last_node_id, key, next_tn.is_accepting());
                 queue.push_back((new_node_id, next_tn));
-            }
+            });
         }
     }
 
     fn topo_sort(&mut self) {
         let mut in_degree: Vec<usize> = Vec::new();
         in_degree.resize(self.node_pool.len(), 0);
-        for node in &self.node_pool {
-            for v in node.trans.values() {
-                in_degree[*v] += 1
-            }
-        }
+        self.node_pool.iter().for_each(|node| {
+            node.trans.values().for_each(|v| {
+                in_degree[*v] += 1;
+            });
+        });
         assert!(in_degree[SAM_ROOT_NODE_ID] == 0);
 
         self.topo_order.reserve(self.node_pool.len());
@@ -127,21 +132,21 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         queue.push_back(SAM_ROOT_NODE_ID);
         self.topo_order.push(SAM_ROOT_NODE_ID);
         while let Some(u_id) = queue.pop_front() {
-            for v_id in self.node_pool[u_id].trans.values() {
+            self.node_pool[u_id].trans.values().for_each(|v_id| {
                 in_degree[*v_id] -= 1;
                 if in_degree[*v_id] == 0 {
                     queue.push_back(*v_id);
                     self.topo_order.push(*v_id);
                 }
-            }
+            });
         }
     }
 
     fn update_accepting(&mut self) {
-        for node_id in self.topo_order.iter().rev() {
+        self.topo_order.iter().rev().for_each(|node_id| {
             let link_id = self.node_pool[*node_id].link;
             self.node_pool[link_id].accept |= self.node_pool[*node_id].accept;
-        }
+        })
     }
 
     fn alloc_node(&mut self, node: Node<T>) -> usize {
@@ -211,14 +216,15 @@ impl<'s, T: Ord + Copy> State<'s, T> {
         &self.sam.node_pool[self.node_id]
     }
 
-    pub fn goto(self, t: &T) -> Self {
-        Self {
-            sam: self.sam,
-            node_id: if let Some(next_node_id) = self.get_node().trans.get(t) {
-                *next_node_id
-            } else {
-                SAM_NIL_NODE_ID
-            },
+    pub fn goto_suffix_parent(&mut self) {
+        self.node_id = self.get_node().link;
+    }
+
+    pub fn goto(&mut self, t: &T) {
+        self.node_id = if let Some(next_node_id) = self.get_node().trans.get(t) {
+            *next_node_id
+        } else {
+            SAM_NIL_NODE_ID
         }
     }
 
@@ -226,16 +232,18 @@ impl<'s, T: Ord + Copy> State<'s, T> {
         self.feed_ref_iter(seq.into_iter())
     }
 
-    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(self, iter: Iter) -> Self {
-        iter.fold(self, |b, x| b.goto(x))
+    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(mut self, iter: Iter) -> Self {
+        iter.for_each(|t| self.goto(t));
+        self
     }
 
     pub fn feed<Seq: IntoIterator<Item = T>>(self, seq: Seq) -> Self {
         self.feed_iter(seq.into_iter())
     }
 
-    pub fn feed_iter<Iter: Iterator<Item = T>>(self, iter: Iter) -> Self {
-        iter.fold(self, |b, x| b.goto(&x))
+    pub fn feed_iter<Iter: Iterator<Item = T>>(mut self, iter: Iter) -> Self {
+        iter.for_each(|t| self.goto(&t));
+        self
     }
 }
 
