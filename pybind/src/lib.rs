@@ -37,6 +37,10 @@ impl Trie {
         Trie(trie::Trie::default())
     }
 
+    fn num_of_nodes(&self) -> usize {
+        self.0.num_of_nodes()
+    }
+
     fn insert_str(&mut self, s: &str) -> usize {
         self.0.insert_iter(s.chars())
     }
@@ -111,35 +115,35 @@ impl GeneralSAMState {
 
 #[pymethods]
 impl GeneralSAMState {
-    pub fn get_node_id(&self) -> usize {
+    fn get_node_id(&self) -> usize {
         self.1
     }
 
-    pub fn is_nil(&self) -> bool {
+    fn is_nil(&self) -> bool {
         self.get_state().is_nil()
     }
 
-    pub fn is_root(&self) -> bool {
+    fn is_root(&self) -> bool {
         self.get_state().is_root()
     }
 
-    pub fn is_accepting(&self) -> bool {
+    fn is_accepting(&self) -> bool {
         self.get_state().is_accepting()
     }
 
-    pub fn goto_suffix_parent(&mut self) {
+    fn goto_suffix_parent(&mut self) {
         let mut state = self.get_state();
         state.goto_suffix_parent();
         self.1 = state.node_id;
     }
 
-    pub fn goto(&mut self, t: char) {
+    fn goto(&mut self, t: char) {
         let mut state = self.get_state();
         state.goto(&t);
         self.1 = state.node_id;
     }
 
-    pub fn feed_str(&mut self, s: &str) {
+    fn feed_str(&mut self, s: &str) {
         let state = self.get_state();
         let state = state.feed_chars(s);
         self.1 = state.node_id;
@@ -158,6 +162,18 @@ impl GeneralSAM {
         GeneralSAM(Arc::new(sam::GeneralSAM::construct_from_trie(
             trie.0.get_root_state(),
         )))
+    }
+
+    fn num_of_nodes(&self) -> usize {
+        self.0.num_of_nodes()
+    }
+
+    fn get_root_state(&self) -> GeneralSAMState {
+        GeneralSAMState(self.0.clone(), sam::SAM_ROOT_NODE_ID)
+    }
+
+    fn get_state(&self, node_id: usize) -> GeneralSAMState {
+        GeneralSAMState(self.0.clone(), node_id)
     }
 }
 

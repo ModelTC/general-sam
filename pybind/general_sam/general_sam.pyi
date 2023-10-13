@@ -39,6 +39,32 @@ class Trie:
     ) -> TrieNode:
         ...
 
+    def num_of_node(self) -> int:
+        ...
+
+
+class GeneralSAMState:
+    def get_node_id(self) -> int:
+        ...
+
+    def is_nil(self) -> bool:
+        ...
+
+    def is_root(self) -> bool:
+        ...
+
+    def is_accepting(self) -> bool:
+        ...
+
+    def goto_suffix_parent(self):
+        ...
+
+    def goto(self, t: str):
+        ...
+
+    def feed_str(self, s: str):
+        ...
+
 
 class GeneralSAM:
     @staticmethod
@@ -47,4 +73,13 @@ class GeneralSAM:
 
     @staticmethod
     def construct_from_trie(trie: Trie):
+        ...
+
+    def get_root_state(self) -> GeneralSAMState:
+        ...
+
+    def get_state(self, node_id: int) -> GeneralSAMState:
+        ...
+
+    def num_of_node(self) -> int:
         ...

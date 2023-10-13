@@ -50,6 +50,10 @@ impl<T: Ord + Clone> Default for Trie<T> {
 }
 
 impl<T: Ord + Clone> Trie<T> {
+    pub fn num_of_nodes(&self) -> usize {
+        self.node_pool.len()
+    }
+
     pub fn get_state(&self, node_id: usize) -> State<T> {
         if node_id >= self.node_pool.len() {
             return State {

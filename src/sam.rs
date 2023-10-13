@@ -78,6 +78,10 @@ impl<T: Ord + Clone> Default for GeneralSAM<T> {
 }
 
 impl<T: Ord + Clone> GeneralSAM<T> {
+    pub fn num_of_nodes(&self) -> usize {
+        self.node_pool.len()
+    }
+
     pub fn get_root_state(&self) -> State<T> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
