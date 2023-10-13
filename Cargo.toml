@@ -6,6 +6,7 @@ license = "MIT OR Apache-2.0"
 description = "A general suffix automaton implementation in Rust"
 repository = "https://github.com/ModelTC/general-sam"
 homepage = "https://github.com/ModelTC/general-sam"
+documentation = "https://docs.rs/general-sam"
 readme = "README.md"
 authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
 
