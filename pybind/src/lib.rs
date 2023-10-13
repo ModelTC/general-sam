@@ -1,8 +1,11 @@
 extern crate general_sam as general_sam_rs;
 
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
-use general_sam_rs::{sam, trie, trie_alike::TrieNodeAlike};
+use general_sam_rs::{
+    sam, trie,
+    trie_alike::{TravelEvent, TrieNodeAlike},
+};
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -46,7 +49,17 @@ impl Trie {
     }
 
     fn get_bfs_order(&self) -> Vec<usize> {
-        self.0.get_bfs_order()
+        let state = self.0.get_root_state();
+        let mut res = Vec::new();
+        state
+            .bfs_travel(|event| -> Result<(), Infallible> {
+                if let TravelEvent::Push(s, _) = event {
+                    res.push(s.node_id);
+                }
+                Ok(())
+            })
+            .unwrap();
+        res
     }
 
     fn get_root(&self) -> TrieNode {
@@ -174,6 +187,13 @@ impl GeneralSAM {
 
     fn get_state(&self, node_id: usize) -> GeneralSAMState {
         GeneralSAMState(self.0.clone(), node_id)
+    }
+
+    fn get_topo_order(&self) -> Vec<GeneralSAMState> {
+        self.0
+            .get_topo_order()
+            .map(|s| self.get_state(s.node_id))
+            .collect()
     }
 }
 

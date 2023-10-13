@@ -104,20 +104,6 @@ impl<T: Ord + Clone> Trie<T> {
         self.node_pool[current].accept = true;
         current
     }
-
-    pub fn get_bfs_order(&self) -> Vec<usize> {
-        let mut res = Vec::new();
-        let mut head = 0;
-        res.push(TRIE_ROOT_NODE_ID);
-        while head < res.len() {
-            let cur_id = res[head];
-            head += 1;
-            self.node_pool[cur_id].trans.values().for_each(|v| {
-                res.push(*v);
-            });
-        }
-        res
-    }
 }
 
 impl<'s, T: Ord + Clone> State<'s, T> {
