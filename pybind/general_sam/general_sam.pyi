@@ -56,6 +56,9 @@ class GeneralSAMState:
     def is_accepting(self) -> bool:
         ...
 
+    def get_suffix_parent_id(self) -> int:
+        ...
+
     def goto_suffix_parent(self):
         ...
 

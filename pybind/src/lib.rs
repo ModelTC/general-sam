@@ -151,6 +151,13 @@ impl GeneralSAMState {
         self.get_state().is_accepting()
     }
 
+    fn get_suffix_parent_id(&self) -> usize {
+        self.get_state()
+            .get_node()
+            .map(|node| node.get_suffix_parent_id())
+            .unwrap_or(sam::SAM_NIL_NODE_ID)
+    }
+
     fn goto_suffix_parent(&mut self) {
         let mut state = self.get_state();
         state.goto_suffix_parent();

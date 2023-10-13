@@ -42,6 +42,10 @@ impl<T: Ord + Clone> Node<T> {
     pub fn max_suffix_len(&self) -> usize {
         self.len
     }
+
+    pub fn get_suffix_parent_id(&self) -> usize {
+        self.link
+    }
 }
 
 impl GeneralSAM<u8> {
