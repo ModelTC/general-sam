@@ -49,7 +49,7 @@ def _test_token_healing_batch(
         # NOTE: tokens are prepended in the reverse order
         for token in reversed(tokens):
             query = token + query  # pyright: ignore
-            cnt_info = automaton.feed(state, token)
+            cnt_info = automaton.prepend_feed(state, token)
             validate(query, state, cnt_info)
 
     for tokens in token_sequences:

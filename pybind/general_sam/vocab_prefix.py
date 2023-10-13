@@ -129,7 +129,7 @@ class VocabPrefixAutomaton(object):
     def get_root_state(self) -> GeneralSAMState:
         return self.sam_rev.get_root_state()
 
-    def feed(
+    def prepend_feed(
         self, state: GeneralSAMState, token: Union[str, bytes]
     ) -> Optional[CountInfo]:
         if self.bytes_or_chars == VocabPrefixBytesOrChars.BYTES and isinstance(
