@@ -4,11 +4,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-  - package-ecosystem: cargo
-    directory: /pybind
-    schedule:
-      interval: weekly
-  - package-ecosystem: pip
-    directory: /pybind
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
       interval: weekly
