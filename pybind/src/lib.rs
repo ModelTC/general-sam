@@ -236,7 +236,7 @@ impl GeneralSAMState {
         self.1 = state.node_id;
     }
 
-    fn feed_str(&mut self, s: &str) {
+    fn feed_chars(&mut self, s: &str) {
         match self.get_state() {
             Either::Left(state_chars) => {
                 let state_chars = state_chars.feed_chars(s);
@@ -244,6 +244,19 @@ impl GeneralSAMState {
             }
             Either::Right(state_bytes) => {
                 let state_bytes = state_bytes.feed_ref_iter(s.as_bytes().iter());
+                self.1 = state_bytes.node_id;
+            }
+        }
+    }
+
+    fn feed_bytes(&mut self, s: &[u8]) {
+        match self.get_state() {
+            Either::Left(state_chars) => {
+                let state_chars = state_chars.feed_iter(from_utf8(s).unwrap().chars());
+                self.1 = state_chars.node_id;
+            }
+            Either::Right(state_bytes) => {
+                let state_bytes = state_bytes.feed_ref_iter(s.iter());
                 self.1 = state_bytes.node_id;
             }
         }
