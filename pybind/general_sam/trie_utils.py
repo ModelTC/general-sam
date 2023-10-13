@@ -1,7 +1,15 @@
 from dataclasses import dataclass
-from typing import Collection, Sequence
+from typing import Collection, Sequence, Tuple
 
 from .general_sam import Trie
+
+
+def construct_trie_from_strings(
+    strings: Collection[str],
+) -> Tuple[Trie, Sequence[int]]:
+    trie = Trie()
+    node_ids = [trie.insert_str(s) for s in strings]
+    return trie, node_ids
 
 
 @dataclass
@@ -22,8 +30,7 @@ class SortResult:
 
 
 def sort_strings(strings: Collection[str]) -> SortResult:
-    trie = Trie()
-    node_ids = [trie.insert_str(s) for s in strings]
+    trie, node_ids = construct_trie_from_strings(strings)
 
     cnt_info_on_nodes = [CountInfo(0, 0, 0) for _ in range(trie.num_of_nodes())]
 
