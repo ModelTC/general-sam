@@ -9,6 +9,7 @@ homepage = "https://github.com/ModelTC/general-sam"
 documentation = "https://docs.rs/general-sam"
 readme = "README.md"
 authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
+exclude = ["release-plz.toml", "cliff.tolm"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
