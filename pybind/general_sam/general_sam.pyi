@@ -19,6 +19,9 @@ class Trie:
     def __init__(self) -> None:
         ...
 
+    def num_of_nodes(self) -> int:
+        ...
+
     def insert_str(self, s: str) -> int:
         ...
 
@@ -39,7 +42,12 @@ class Trie:
     ) -> TrieNode:
         ...
 
-    def num_of_nodes(self) -> int:
+    def bfs_travel(
+        self,
+        in_queue_callback: Callable[[int, Optional[str]], None],
+        out_queue_callback: Callable[[int], None],
+        root_node_id: Optional[int] = None,
+    ) -> TrieNode:
         ...
 
 
@@ -68,14 +76,35 @@ class GeneralSAMState:
     def feed_str(self, s: str):
         ...
 
+    def dfs_along(
+        self,
+        trie: Trie,
+        in_stack_callback: Callable[['GeneralSAMState', int, Optional[str]], None],
+        out_stack_callback: Callable[['GeneralSAMState', int], None],
+        trie_node_id: Optional[int] = None,
+    ) -> TrieNode:
+        ...
+
+    def bfs_along(
+        self,
+        trie: Trie,
+        in_queue_callback: Callable[['GeneralSAMState', int, Optional[str]], None],
+        out_queue_callback: Callable[['GeneralSAMState', int], None],
+        trie_node_id: Optional[int] = None,
+    ) -> TrieNode:
+        ...
+
 
 class GeneralSAM:
     @staticmethod
-    def construct_from_str(s: str):
+    def construct_from_str(s: str) -> 'GeneralSAM':
         ...
 
     @staticmethod
-    def construct_from_trie(trie: Trie):
+    def construct_from_trie(trie: Trie) -> 'GeneralSAM':
+        ...
+
+    def num_of_nodes(self) -> int:
         ...
 
     def get_root_state(self) -> GeneralSAMState:
@@ -84,5 +113,5 @@ class GeneralSAM:
     def get_state(self, node_id: int) -> GeneralSAMState:
         ...
 
-    def num_of_nodes(self) -> int:
+    def get_topo_order(self) -> Sequence[GeneralSAMState]:
         ...
