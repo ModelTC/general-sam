@@ -1,5 +1,7 @@
 # general-sam
 
+![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational?style=flat-square)
+
 A general suffix automaton implementation in Rust.
 
 Python bindings and some utilities are also available.
@@ -70,3 +72,17 @@ assert!(sam.get_root_state().feed_chars("bye").is_nil());
 
 [paper]: https://doi.org/10.1016/j.tcs.2009.03.034
 [general-sam-oi-wiki]: https://oi-wiki.org/string/general-sam/
+
+## License
+
+- &copy; 2023 Chielo Newctle <ChieloNewctle@gmail.com>
+- &copy; 2023 ModelTC Team
+
+This project is licensed under either of
+
+- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) ([`LICENSE-APACHE`](LICENSE-APACHE))
+- [MIT license](https://opensource.org/licenses/MIT) ([`LICENSE-MIT`](LICENSE-MIT))
+
+at your option.
+
+The [SPDX](https://spdx.dev) license identifier for this project is `MIT OR Apache-2.0`.

@@ -1,5 +1,7 @@
 # general-sam-py
 
+![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational?style=flat-square)
+
 Python bindings for [`general-sam`](https://github.com/ModelTC/general-sam)
 and some utilities.
 
@@ -146,3 +148,17 @@ assert not state.is_nil()
 cnt_info = automaton.prepend_feed(state, '来')
 assert state.is_nil()
 ```
+
+## License
+
+- &copy; 2023 Chielo Newctle <ChieloNewctle@gmail.com>
+- &copy; 2023 ModelTC Team
+
+This project is licensed under either of
+
+- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) ([`LICENSE-APACHE`](LICENSE-APACHE))
+- [MIT license](https://opensource.org/licenses/MIT) ([`LICENSE-MIT`](LICENSE-MIT))
+
+at your option.
+
+The [SPDX](https://spdx.dev) license identifier for this project is `MIT OR Apache-2.0`.
