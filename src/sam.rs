@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use crate::trie_alike::{ByteChain, ByteChainIter, TrieNodeAlike};
+use crate::trie_alike::{ByteChain, TrieNodeAlike};
 
 #[derive(Clone, Debug)]
 pub struct Node<T>
@@ -43,8 +43,23 @@ impl<T: Ord + Copy> Node<T> {
 }
 
 impl GeneralSAM<u8> {
-    pub fn construct_from_str<S: AsRef<[u8]>>(s: S) -> Self {
-        Self::construct_from_trie::<ByteChain<S>, ByteChainIter<S>>(s.into())
+    pub fn construct_from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
+        let iter = ByteChain::from(s.as_ref().iter().copied());
+        Self::construct_from_trie(iter)
+    }
+}
+
+impl GeneralSAM<u32> {
+    pub fn construct_from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
+        let iter = ByteChain::from(s.as_ref().iter().copied());
+        Self::construct_from_trie(iter)
+    }
+}
+
+impl GeneralSAM<char> {
+    pub fn construct_from_chars<S: Iterator<Item = char>>(s: S) -> Self {
+        let iter = ByteChain::from(s);
+        Self::construct_from_trie(iter)
     }
 }
 
@@ -71,11 +86,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         }
     }
 
-    pub fn construct_from_trie<TN, Iter>(node: TN) -> Self
-    where
-        TN: TrieNodeAlike<T, Iter>,
-        Iter: Iterator<Item = (T, TN)>,
-    {
+    pub fn construct_from_trie<TN: TrieNodeAlike<T>>(node: TN) -> Self {
         let mut sam = Self::default();
 
         let accept_empty_string = node.is_accepting();
@@ -89,17 +100,12 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         sam
     }
 
-    fn build_with_trie<TN, Iter>(&mut self, node: TN)
-    where
-        TN: TrieNodeAlike<T, Iter>,
-        Iter: Iterator<Item = (T, TN)>,
-    {
+    fn build_with_trie<TN: TrieNodeAlike<T>>(&mut self, node: TN) {
         let mut queue = VecDeque::new();
         queue.push_back((SAM_ROOT_NODE_ID, node));
         while let Some((last_node_id, tn)) = queue.pop_front() {
-            for (char, next_tn) in tn.next_states() {
-                let new_node_id =
-                    self.insert_node_trans(last_node_id, char, next_tn.is_accepting());
+            for (key, next_tn) in tn.next_states() {
+                let new_node_id = self.insert_node_trans(last_node_id, key, next_tn.is_accepting());
                 queue.push_back((new_node_id, next_tn));
             }
         }
@@ -144,7 +150,14 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         id
     }
 
-    fn insert_node_trans(&mut self, last_node_id: usize, char: T, accept: bool) -> usize {
+    fn insert_node_trans<Key: Into<T>>(
+        &mut self,
+        last_node_id: usize,
+        key: Key,
+        accept: bool,
+    ) -> usize {
+        let key: T = key.into();
+
         let new_node_id = {
             let last_node = &self.node_pool[last_node_id];
             self.alloc_node(Node::new(accept, last_node.len + 1, SAM_NIL_NODE_ID))
@@ -153,10 +166,10 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         let mut p_node_id = last_node_id;
         while p_node_id != SAM_NIL_NODE_ID {
             let p_node = &mut self.node_pool[p_node_id];
-            if p_node.trans.contains_key(&char) {
+            if p_node.trans.contains_key(&key) {
                 break;
             }
-            p_node.trans.insert(char, new_node_id);
+            p_node.trans.insert(key, new_node_id);
             p_node_id = p_node.link;
         }
 
@@ -165,7 +178,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
             return new_node_id;
         }
 
-        let q_node_id = *self.node_pool[p_node_id].trans.get(&char).unwrap();
+        let q_node_id = *self.node_pool[p_node_id].trans.get(&key).unwrap();
         let q_node = &self.node_pool[q_node_id];
         if q_node.len == self.node_pool[p_node_id].len + 1 {
             self.node_pool[new_node_id].link = q_node_id;
@@ -176,7 +189,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
         self.node_pool[clone_node_id].len = self.node_pool[p_node_id].len + 1;
         while p_node_id != SAM_NIL_NODE_ID {
             let p_node = &mut self.node_pool[p_node_id];
-            if let Some(t_node_id) = p_node.trans.get_mut(&char) {
+            if let Some(t_node_id) = p_node.trans.get_mut(&key) {
                 if *t_node_id == q_node_id {
                     *t_node_id = clone_node_id;
                     p_node_id = p_node.link;
@@ -194,7 +207,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
 }
 
 impl<'s, T: Ord + Copy> State<'s, T> {
-    pub fn get_node(&self) -> &Node<T> {
+    pub fn get_node(&self) -> &'s Node<T> {
         &self.sam.node_pool[self.node_id]
     }
 
@@ -209,17 +222,31 @@ impl<'s, T: Ord + Copy> State<'s, T> {
         }
     }
 
-    pub fn feed<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
+    pub fn feed_ref<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
+        self.feed_ref_iter(seq.into_iter())
+    }
+
+    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(self, iter: Iter) -> Self {
+        iter.fold(self, |b, x| b.goto(x))
+    }
+
+    pub fn feed<Seq: IntoIterator<Item = T>>(self, seq: Seq) -> Self {
         self.feed_iter(seq.into_iter())
     }
 
-    pub fn feed_iter<Iter: Iterator<Item = &'s T>>(self, iter: Iter) -> Self {
-        iter.fold(self, |b, x| b.goto(x))
+    pub fn feed_iter<Iter: Iterator<Item = T>>(self, iter: Iter) -> Self {
+        iter.fold(self, |b, x| b.goto(&x))
     }
 }
 
 impl<'s> State<'s, u8> {
-    pub fn feed_str(self, seq: &'s str) -> Self {
-        self.feed(seq.as_bytes())
+    pub fn feed_bytes(self, seq: &'s str) -> Self {
+        self.feed_ref(seq.as_bytes())
+    }
+}
+
+impl<'s> State<'s, char> {
+    pub fn feed_chars(self, seq: &'s str) -> Self {
+        self.feed(seq.chars())
     }
 }

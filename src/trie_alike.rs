@@ -1,50 +1,57 @@
-pub trait TrieNodeAlike<T, Iter>
-where
-    T: Ord,
-    Iter: Iterator<Item = (T, Self)>,
-{
+use std::marker::PhantomData;
+
+pub trait TrieNodeAlike<KeyType> {
+    type NextStateIter: Iterator<Item = (KeyType, Self)>;
     fn is_accepting(&self) -> bool;
-    fn next_states(self) -> Iter;
+    fn next_states(self) -> Self::NextStateIter;
 }
 
-pub struct ByteChain<S: AsRef<[u8]>> {
-    string: S,
-    pos: usize,
+pub struct ByteChain<Iter: Iterator> {
+    iter: Iter,
+    val: Option<Iter::Item>,
 }
 
-pub struct ByteChainIter<S: AsRef<[u8]>> {
-    c: Option<ByteChain<S>>,
-}
-
-impl<S: AsRef<[u8]>> From<S> for ByteChain<S> {
-    fn from(s: S) -> Self {
-        ByteChain { string: s, pos: 0 }
+impl<Iter: Iterator> From<Iter> for ByteChain<Iter> {
+    fn from(mut iter: Iter) -> Self {
+        let val = iter.next();
+        Self { iter, val }
     }
 }
 
-impl<S: AsRef<[u8]>> TrieNodeAlike<u8, ByteChainIter<S>> for ByteChain<S> {
+impl<Iter: Iterator, KeyType: From<Iter::Item>> TrieNodeAlike<KeyType> for ByteChain<Iter> {
+    type NextStateIter = ByteChainNextStateIter<KeyType, Iter>;
+
     fn is_accepting(&self) -> bool {
-        self.pos >= self.string.as_ref().len()
+        self.val.is_none()
     }
 
-    fn next_states(self) -> ByteChainIter<S> {
-        ByteChainIter { c: Some(self) }
+    fn next_states(self) -> Self::NextStateIter {
+        Self::NextStateIter {
+            state: Some(self),
+            phantom_key: PhantomData,
+        }
     }
 }
 
-impl<S: AsRef<[u8]>> Iterator for ByteChainIter<S> {
-    type Item = (u8, ByteChain<S>);
+pub struct ByteChainNextStateIter<KeyType, Iter: Iterator> {
+    state: Option<ByteChain<Iter>>,
+    phantom_key: PhantomData<KeyType>,
+}
+
+impl<KeyType, Iter: Iterator> Iterator for ByteChainNextStateIter<KeyType, Iter>
+where
+    Iter::Item: Into<KeyType>,
+{
+    type Item = (KeyType, ByteChain<Iter>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(mut res) = self.c.take() {
-            return if res.pos < res.string.as_ref().len() {
-                let c = &res.string.as_ref()[res.pos];
-                res.pos += 1;
-                Some((*c, res))
+        self.state.take().and_then(|mut chain| {
+            if let Some(v) = chain.val {
+                chain.val = chain.iter.next();
+                Some((v.into(), chain))
             } else {
                 None
-            };
-        }
-        None
+            }
+        })
     }
 }
