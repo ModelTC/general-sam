@@ -85,6 +85,14 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         }
     }
 
+    pub fn get_topo_order(&self) -> TopoOrderStateIter<'_, T> {
+        TopoOrderStateIter {
+            sam: self,
+            head: 0,
+            rear: self.topo_order.len(),
+        }
+    }
+
     pub fn construct_from_trie<TN: TrieNodeAlike>(node: TN) -> Self
     where
         TN::InnerType: Into<T>,
@@ -128,14 +136,14 @@ impl<T: Ord + Clone> GeneralSAM<T> {
 
         self.topo_order.reserve(self.node_pool.len());
 
-        let mut queue = VecDeque::new();
-        queue.push_back(SAM_ROOT_NODE_ID);
         self.topo_order.push(SAM_ROOT_NODE_ID);
-        while let Some(u_id) = queue.pop_front() {
+        let mut head = 0;
+        while head < self.topo_order.len() {
+            let u_id = self.topo_order[head];
+            head += 1;
             self.node_pool[u_id].trans.values().for_each(|v_id| {
                 in_degree[*v_id] -= 1;
                 if in_degree[*v_id] == 0 {
-                    queue.push_back(*v_id);
                     self.topo_order.push(*v_id);
                 }
             });
@@ -264,5 +272,40 @@ impl<'s> State<'s, u8> {
 impl<'s> State<'s, char> {
     pub fn feed_chars(self, seq: &'s str) -> Self {
         self.feed(seq.chars())
+    }
+}
+
+pub struct TopoOrderStateIter<'s, T: Ord + Clone> {
+    sam: &'s GeneralSAM<T>,
+    head: usize,
+    rear: usize,
+}
+
+impl<'s, T: Ord + Clone> Iterator for TopoOrderStateIter<'s, T> {
+    type Item = State<'s, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.head >= self.sam.topo_order.len() {
+            return None;
+        }
+        let res = State {
+            sam: self.sam,
+            node_id: self.sam.topo_order[self.head],
+        };
+        self.head += 1;
+        Some(res)
+    }
+}
+impl<'s, T: Ord + Clone> DoubleEndedIterator for TopoOrderStateIter<'s, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.rear == 0 {
+            return None;
+        }
+        self.rear -= 1;
+        let res = State {
+            sam: self.sam,
+            node_id: self.sam.topo_order[self.rear],
+        };
+        Some(res)
     }
 }

@@ -59,11 +59,11 @@ impl<T: Ord + Clone> Trie<T> {
         node_id
     }
 
-    pub fn insert_iter_ref<'s, Iter: Iterator<Item = &'s T>>(&'s mut self, iter: Iter) {
+    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s T>>(&'s mut self, iter: Iter) -> usize {
         self.insert_iter(iter.cloned())
     }
 
-    pub fn insert_iter<Iter: Iterator<Item = T>>(&mut self, iter: Iter) {
+    pub fn insert_iter<Iter: Iterator<Item = T>>(&mut self, iter: Iter) -> usize {
         let mut current = TRIE_ROOT_NODE_ID;
         iter.for_each(|t| {
             current = match self.node_pool[current].trans.get(&t) {
@@ -76,6 +76,21 @@ impl<T: Ord + Clone> Trie<T> {
             };
         });
         self.node_pool[current].accept = true;
+        current
+    }
+
+    pub fn get_bfs_order(&self) -> Vec<usize> {
+        let mut res = Vec::new();
+        let mut head = 0;
+        res.push(TRIE_ROOT_NODE_ID);
+        while head < res.len() {
+            let cur_id = res[head];
+            head += 1;
+            self.node_pool[cur_id].trans.values().for_each(|v| {
+                res.push(*v);
+            });
+        }
+        res
     }
 }
 
