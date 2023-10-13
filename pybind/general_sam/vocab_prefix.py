@@ -138,3 +138,11 @@ class VocabPrefixAutomaton(object):
             token = token.encode()
         self._state_feed_fn(state, token[::-1])
         return self.cnt_info_in_sam[state.get_node_id()]
+
+    def get_order(self) -> Sequence[int]:
+        return self.vocab_sort_res.order
+
+    def get_order_slice(self, cnt_info: CountInfo) -> Sequence[int]:
+        return self.vocab_sort_res.order[
+            cnt_info.tot_cnt_lower : cnt_info.tot_cnt_upper
+        ]
