@@ -72,7 +72,7 @@ impl<T: Ord + Clone> Default for GeneralSAM<T> {
                 Node::new(false, 0, SAM_NIL_NODE_ID),
                 Node::new(true, 0, SAM_NIL_NODE_ID),
             ],
-            topo_order: Vec::new(),
+            topo_order: Default::default(),
         }
     }
 }
@@ -212,6 +212,14 @@ impl<T: Ord + Clone> GeneralSAM<T> {
 }
 
 impl<'s, T: Ord + Clone> State<'s, T> {
+    pub fn is_nil(&self) -> bool {
+        self.node_id == SAM_NIL_NODE_ID
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.node_id == SAM_ROOT_NODE_ID
+    }
+
     pub fn get_node(&self) -> &'s Node<T> {
         &self.sam.node_pool[self.node_id]
     }
