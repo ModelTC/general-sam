@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
 
-use crate::trie_alike::{ByteChain, TrieNodeAlike};
+use crate::trie_alike::{IterAsChain, TrieNodeAlike};
 
 #[derive(Debug, Clone)]
 pub struct Node<T: Ord + Clone> {
@@ -43,21 +43,21 @@ impl<T: Ord + Clone> Node<T> {
 
 impl GeneralSAM<u8> {
     pub fn construct_from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
-        let iter = ByteChain::from(s.as_ref().iter().copied());
+        let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::construct_from_trie(iter)
     }
 }
 
 impl GeneralSAM<u32> {
     pub fn construct_from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
-        let iter = ByteChain::from(s.as_ref().iter().copied());
+        let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::construct_from_trie(iter)
     }
 }
 
 impl GeneralSAM<char> {
     pub fn construct_from_chars<S: Iterator<Item = char>>(s: S) -> Self {
-        let iter = ByteChain::from(s);
+        let iter = IterAsChain::from(s);
         Self::construct_from_trie(iter)
     }
 }

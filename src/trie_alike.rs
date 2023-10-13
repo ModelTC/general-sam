@@ -5,21 +5,21 @@ pub trait TrieNodeAlike {
     fn next_states(self) -> Self::NextStateIter;
 }
 
-pub struct ByteChain<Iter: Iterator> {
+pub struct IterAsChain<Iter: Iterator> {
     iter: Iter,
     val: Option<Iter::Item>,
 }
 
-impl<Iter: Iterator> From<Iter> for ByteChain<Iter> {
+impl<Iter: Iterator> From<Iter> for IterAsChain<Iter> {
     fn from(mut iter: Iter) -> Self {
         let val = iter.next();
         Self { iter, val }
     }
 }
 
-impl<Iter: Iterator> TrieNodeAlike for ByteChain<Iter> {
+impl<Iter: Iterator> TrieNodeAlike for IterAsChain<Iter> {
     type InnerType = Iter::Item;
-    type NextStateIter = ByteChainNextStateIter<Iter>;
+    type NextStateIter = IterAsChainDummyNextState<Iter>;
 
     fn is_accepting(&self) -> bool {
         self.val.is_none()
@@ -30,12 +30,12 @@ impl<Iter: Iterator> TrieNodeAlike for ByteChain<Iter> {
     }
 }
 
-pub struct ByteChainNextStateIter<Iter: Iterator> {
-    state: Option<ByteChain<Iter>>,
+pub struct IterAsChainDummyNextState<Iter: Iterator> {
+    state: Option<IterAsChain<Iter>>,
 }
 
-impl<Iter: Iterator> Iterator for ByteChainNextStateIter<Iter> {
-    type Item = (Iter::Item, ByteChain<Iter>);
+impl<Iter: Iterator> Iterator for IterAsChainDummyNextState<Iter> {
+    type Item = (Iter::Item, IterAsChain<Iter>);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.state.take().and_then(|mut chain| {
