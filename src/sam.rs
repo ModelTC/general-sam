@@ -2,6 +2,9 @@ use std::collections::{BTreeMap, VecDeque};
 
 use crate::trie_alike::{IterAsChain, TrieNodeAlike};
 
+pub const SAM_NIL_NODE_ID: usize = 0;
+pub const SAM_ROOT_NODE_ID: usize = 1;
+
 #[derive(Debug, Clone)]
 pub struct Node<T: Ord + Clone> {
     trans: BTreeMap<T, usize>,
@@ -61,9 +64,6 @@ impl GeneralSAM<char> {
         Self::construct_from_trie(iter)
     }
 }
-
-const SAM_NIL_NODE_ID: usize = 0;
-const SAM_ROOT_NODE_ID: usize = 1;
 
 impl<T: Ord + Clone> Default for GeneralSAM<T> {
     fn default() -> Self {
@@ -249,7 +249,12 @@ impl<'s, T: Ord + Clone> State<'s, T> {
     }
 
     pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(mut self, iter: Iter) -> Self {
-        iter.for_each(|t| self.goto(t));
+        for t in iter {
+            if self.is_nil() {
+                break;
+            }
+            self.goto(t)
+        }
         self
     }
 
@@ -258,7 +263,12 @@ impl<'s, T: Ord + Clone> State<'s, T> {
     }
 
     pub fn feed_iter<Iter: Iterator<Item = T>>(mut self, iter: Iter) -> Self {
-        iter.for_each(|t| self.goto(&t));
+        for t in iter {
+            if self.is_nil() {
+                break;
+            }
+            self.goto(&t)
+        }
         self
     }
 }

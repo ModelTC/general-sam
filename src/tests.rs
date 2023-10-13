@@ -63,7 +63,7 @@ fn test_trie_suffix(vocab: &[&str]) {
     });
     println!("trie: {:?}", trie);
 
-    let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root());
+    let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
     println!("sam: {:?}", sam);
     vocab.iter().for_each(|word| {
         println!(

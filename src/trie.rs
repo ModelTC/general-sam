@@ -2,6 +2,9 @@ use std::collections::{btree_map, BTreeMap};
 
 use crate::trie_alike::TrieNodeAlike;
 
+pub const TRIE_NIL_NODE_ID: usize = 0;
+pub const TRIE_ROOT_NODE_ID: usize = 1;
+
 #[derive(Debug, Clone)]
 pub struct Node<T: Ord + Clone> {
     trans: BTreeMap<T, usize>,
@@ -17,11 +20,8 @@ pub struct Trie<T: Ord + Clone> {
 #[derive(Debug, Clone)]
 pub struct State<'s, T: Ord + Clone> {
     pub trie: &'s Trie<T>,
-    node_id: usize,
+    pub node_id: usize,
 }
-
-const TRIE_NIL_NODE_ID: usize = 0;
-const TRIE_ROOT_NODE_ID: usize = 1;
 
 impl<T: Ord + Clone> Node<T> {
     fn new(parent: usize) -> Self {
@@ -30,6 +30,14 @@ impl<T: Ord + Clone> Node<T> {
             parent,
             accept: Default::default(),
         }
+    }
+
+    pub fn get_trans(&self) -> &BTreeMap<T, usize> {
+        &self.trans
+    }
+
+    pub fn get_parent(&self) -> usize {
+        self.parent
     }
 }
 
@@ -49,7 +57,15 @@ impl<T: Ord + Clone> Trie<T> {
         }
     }
 
-    pub fn get_root(&self) -> State<T> {
+    pub fn get_node(&self, node_id: usize) -> &Node<T> {
+        &self.node_pool[node_id]
+    }
+
+    pub fn get_root_node(&self) -> &Node<T> {
+        self.get_node(TRIE_ROOT_NODE_ID)
+    }
+
+    pub fn get_root_state(&self) -> State<T> {
         self.get_state(TRIE_ROOT_NODE_ID)
     }
 
@@ -150,5 +166,11 @@ impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
         } else {
             None
         }
+    }
+}
+
+impl<'s, T: Ord + Clone> NextStateIter<'s, T> {
+    pub fn get_state(&self) -> &State<'s, T> {
+        &self.state
     }
 }
