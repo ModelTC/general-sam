@@ -285,7 +285,9 @@ impl GeneralSAM {
 
 #[pymodule]
 fn general_sam(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<TrieNode>()?;
     m.add_class::<Trie>()?;
+    m.add_class::<GeneralSAMState>()?;
     m.add_class::<GeneralSAM>()?;
     Ok(())
 }
