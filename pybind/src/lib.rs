@@ -3,7 +3,7 @@ extern crate general_sam as general_sam_rs;
 use std::{convert::Infallible, str::from_utf8, sync::Arc};
 
 use either::{for_both, Either};
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyDict};
 
 use general_sam_rs::{
     sam, trie,
@@ -207,6 +207,18 @@ impl GeneralSAMState {
 
     fn is_accepting(&self) -> bool {
         for_both!(self.get_state().as_ref(), x => x.is_accepting())
+    }
+
+    fn get_trans(&self) -> PyObject {
+        Python::with_gil(|py| {
+            for_both!(self.get_state().as_ref(), state => {
+                if let Some(node) = state.get_node() {
+                    node.get_trans().clone().into_py(py)
+                } else {
+                    PyDict::new(py).into_py(py)
+                }
+            })
+        })
     }
 
     fn get_suffix_parent_id(&self) -> usize {

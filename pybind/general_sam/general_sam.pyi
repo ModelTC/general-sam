@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence, Union
 
 
 class TrieNode:
@@ -14,7 +14,7 @@ class TrieNode:
     def is_accepting(self) -> bool:
         ...
 
-    def get_trans(self) -> Mapping[str, int]:
+    def get_trans(self) -> Mapping[Union[str, int], int]:
         ...
 
     def get_parent(self) -> int:
@@ -90,6 +90,9 @@ class GeneralSAMState:
     def is_accepting(self) -> bool:
         ...
 
+    def get_trans(self) -> Mapping[Union[str, int], int]:
+        ...
+
     def get_suffix_parent_id(self) -> int:
         ...
 
@@ -99,7 +102,7 @@ class GeneralSAMState:
     def goto_char(self, t: str):
         ...
 
-    def goto_byte(self, t: bytes):
+    def goto_byte(self, t: int):
         ...
 
     def feed_chars(self, s: str):

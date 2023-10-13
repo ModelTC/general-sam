@@ -46,6 +46,10 @@ impl<T: Ord + Clone> Node<T> {
     pub fn get_suffix_parent_id(&self) -> usize {
         self.link
     }
+
+    pub fn get_trans(&self) -> &BTreeMap<T, usize> {
+        &self.trans
+    }
 }
 
 impl GeneralSAM<u8> {
