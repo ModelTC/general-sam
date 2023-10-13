@@ -4,11 +4,19 @@ from typing import Collection, Sequence, Tuple
 from .general_sam import Trie
 
 
-def construct_trie_from_strings(
+def construct_trie_from_chars(
     strings: Collection[str],
 ) -> Tuple[Trie, Sequence[int]]:
-    trie = Trie()
-    node_ids = [trie.insert_str(s) for s in strings]
+    trie = Trie.in_chars()
+    node_ids = [trie.insert_chars(s) for s in strings]
+    return trie, node_ids
+
+
+def construct_trie_from_bytes(
+    strings: Collection[bytes],
+) -> Tuple[Trie, Sequence[int]]:
+    trie = Trie.in_bytes()
+    node_ids = [trie.insert_bytes(s) for s in strings]
     return trie, node_ids
 
 
@@ -29,11 +37,20 @@ class SortResult:
     rank: Sequence[int]
 
 
-def sort_strings(strings: Collection[str]) -> SortResult:
-    trie, node_ids = construct_trie_from_strings(strings)
+def sort_chars(strings: Collection[str]) -> SortResult:
+    trie, node_ids = construct_trie_from_chars(strings)
+    return sort_seq_via_trie(trie, node_ids)
+
+
+def sort_bytes(strings: Collection[bytes]) -> SortResult:
+    trie, node_ids = construct_trie_from_bytes(strings)
+    return sort_seq_via_trie(trie, node_ids)
+
+
+def sort_seq_via_trie(trie: Trie, node_ids: Sequence[int]) -> SortResult:
+    num_of_seq = len(node_ids)
 
     cnt_info_on_nodes = [CountInfo(0, 0, 0) for _ in range(trie.num_of_nodes())]
-
     for k in node_ids:
         cnt_info_on_nodes[k].str_cnt += 1
 
@@ -52,13 +69,13 @@ def sort_strings(strings: Collection[str]) -> SortResult:
 
     trie.dfs_travel(in_stack, out_stack)
 
-    cnt_info_on_strings = [cnt_info_on_nodes[node_ids[i]] for i in range(len(strings))]
+    cnt_info_on_strings = [cnt_info_on_nodes[node_ids[i]] for i in range(num_of_seq)]
 
     order = sorted(
-        range(len(strings)),
+        range(num_of_seq),
         key=lambda i: cnt_info_on_strings[i].tot_cnt_lower,
     )
-    rank = [0] * len(strings)
+    rank = [0] * num_of_seq
     for k, i in enumerate(order):
         rank[i] = k
 

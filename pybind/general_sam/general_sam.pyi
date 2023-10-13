@@ -2,6 +2,12 @@ from typing import Callable, Mapping, Optional, Sequence
 
 
 class TrieNode:
+    def is_in_chars(self) -> bool:
+        ...
+
+    def is_in_bytes(self) -> bool:
+        ...
+
     def get_node_id(self) -> int:
         ...
 
@@ -16,13 +22,27 @@ class TrieNode:
 
 
 class Trie:
-    def __init__(self) -> None:
+    @staticmethod
+    def in_chars() -> 'Trie':
+        ...
+
+    @staticmethod
+    def in_bytes() -> 'Trie':
+        ...
+
+    def is_in_chars(self) -> bool:
+        ...
+
+    def is_in_bytes(self) -> bool:
         ...
 
     def num_of_nodes(self) -> int:
         ...
 
-    def insert_str(self, s: str) -> int:
+    def insert_chars(self, s: str) -> int:
+        ...
+
+    def insert_bytes(self, s: bytes) -> int:
         ...
 
     def get_bfs_order(self) -> Sequence[int]:
@@ -52,6 +72,12 @@ class Trie:
 
 
 class GeneralSAMState:
+    def is_in_str(self) -> bool:
+        ...
+
+    def is_in_bytes(self) -> bool:
+        ...
+
     def get_node_id(self) -> int:
         ...
 
@@ -70,10 +96,16 @@ class GeneralSAMState:
     def goto_suffix_parent(self):
         ...
 
-    def goto(self, t: str):
+    def goto_char(self, t: str):
         ...
 
-    def feed_str(self, s: str):
+    def goto_byte(self, t: bytes):
+        ...
+
+    def feed_chars(self, s: str):
+        ...
+
+    def feed_bytes(self, s: bytes):
         ...
 
     def dfs_along(
@@ -97,11 +129,21 @@ class GeneralSAMState:
 
 class GeneralSAM:
     @staticmethod
-    def construct_from_str(s: str) -> 'GeneralSAM':
+    def construct_from_chars(s: str) -> 'GeneralSAM':
+        ...
+
+    @staticmethod
+    def construct_from_bytes(s: bytes) -> 'GeneralSAM':
         ...
 
     @staticmethod
     def construct_from_trie(trie: Trie) -> 'GeneralSAM':
+        ...
+
+    def is_in_str(self) -> bool:
+        ...
+
+    def is_in_bytes(self) -> bool:
         ...
 
     def num_of_nodes(self) -> int:

@@ -1,65 +1,104 @@
 extern crate general_sam as general_sam_rs;
 
-use std::{convert::Infallible, sync::Arc};
+use std::{convert::Infallible, str::from_utf8, sync::Arc};
+
+use either::{for_both, Either};
+use pyo3::prelude::*;
 
 use general_sam_rs::{
     sam, trie,
     trie_alike::{TravelEvent, TrieNodeAlike},
 };
-use pyo3::prelude::*;
 
 #[pyclass]
-struct Trie(trie::Trie<char>);
+struct Trie(Either<trie::Trie<char>, trie::Trie<u8>>);
 
 #[pyclass]
-struct TrieNode(usize, trie::Node<char>);
+struct TrieNode(usize, Either<trie::Node<char>, trie::Node<u8>>);
 
 #[pymethods]
 impl TrieNode {
+    fn is_in_chars(&self) -> bool {
+        self.1.is_left()
+    }
+
+    fn is_in_bytes(&self) -> bool {
+        self.1.is_right()
+    }
+
     fn get_node_id(&self) -> usize {
         self.0
     }
 
     fn is_accepting(&self) -> bool {
-        self.1.accept
+        for_both!(self.1.as_ref(), x => x.accept)
     }
 
     fn get_trans(&self) -> PyObject {
-        Python::with_gil(|py| self.1.get_trans().clone().into_py(py))
+        Python::with_gil(|py| {
+            for_both!(self.1.as_ref(), x => {
+                x.get_trans().clone().into_py(py)
+            })
+        })
     }
 
     fn get_parent(&self) -> usize {
-        self.1.get_parent()
+        for_both!(self.1.as_ref(), x => x.get_parent())
     }
 }
 
 #[pymethods]
 impl Trie {
-    #[new]
-    fn new() -> Self {
-        Trie(trie::Trie::default())
+    #[staticmethod]
+    fn in_chars() -> Self {
+        Trie(Either::Left(trie::Trie::default()))
+    }
+
+    #[staticmethod]
+    fn in_bytes() -> Self {
+        Trie(Either::Right(trie::Trie::default()))
+    }
+
+    fn is_in_chars(&self) -> bool {
+        self.0.is_left()
+    }
+
+    fn is_in_bytes(&self) -> bool {
+        self.0.is_right()
     }
 
     fn num_of_nodes(&self) -> usize {
-        self.0.num_of_nodes()
+        for_both!(self.0.as_ref(), x => x.num_of_nodes())
     }
 
-    fn insert_str(&mut self, s: &str) -> usize {
-        self.0.insert_iter(s.chars())
+    fn insert_chars(&mut self, s: &str) -> usize {
+        match self.0.as_mut() {
+            Either::Left(trie_chars) => trie_chars.insert_iter(s.chars()),
+            Either::Right(trie_bytes) => trie_bytes.insert_ref_iter(s.as_bytes().iter()),
+        }
+    }
+
+    fn insert_bytes(&mut self, b: &[u8]) -> usize {
+        match self.0.as_mut() {
+            Either::Left(trie_chars) => trie_chars.insert_iter(from_utf8(b).unwrap().chars()),
+            Either::Right(trie_bytes) => trie_bytes.insert_ref_iter(b.iter()),
+        }
     }
 
     fn get_bfs_order(&self) -> Vec<usize> {
-        let state = self.0.get_root_state();
-        let mut res = Vec::new();
-        state
-            .bfs_travel(|event| -> Result<(), Infallible> {
-                if let TravelEvent::Push(s, _) = event {
-                    res.push(s.node_id);
-                }
-                Ok(())
-            })
-            .unwrap();
-        res
+        for_both!(self.0.as_ref(), trie => {
+            let state = trie.get_root_state();
+            let mut res = Vec::new();
+            state
+                .bfs_travel(|event| -> Result<(), Infallible> {
+                    if let TravelEvent::Push(s, _) = event {
+                        res.push(s.node_id);
+                    }
+                    Ok(())
+                })
+                .unwrap();
+            res
+        })
     }
 
     fn get_root(&self) -> TrieNode {
@@ -67,9 +106,14 @@ impl Trie {
     }
 
     fn get_node(&self, node_id: usize) -> Option<TrieNode> {
-        self.0
-            .get_node(node_id)
-            .map(|node| TrieNode(node_id, node.clone()))
+        match self.0.as_ref() {
+            Either::Left(trie) => trie
+                .get_node(node_id)
+                .map(|node| TrieNode(node_id, Either::Left(node.clone()))),
+            Either::Right(trie) => trie
+                .get_node(node_id)
+                .map(|node| TrieNode(node_id, Either::Right(node.clone()))),
+        }
     }
 
     #[pyo3(signature = (in_stack_callback, out_stack_callback, root_node_id=None))]
@@ -79,20 +123,20 @@ impl Trie {
         out_stack_callback: PyObject,
         root_node_id: Option<usize>,
     ) -> Result<(), PyErr> {
-        let root_state = self
-            .0
-            .get_state(root_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        if root_state.is_nil() {
-            return Ok(());
-        }
-        root_state.dfs_travel(|event| match event {
-            TravelEvent::Push(tn, key_opt) => {
-                Python::with_gil(|py| in_stack_callback.call1(py, (tn.node_id, key_opt.copied())))
-                    .map(|_| ())
+        for_both!(self.0.as_ref(), trie => {
+            let root_state = trie.get_state(root_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+            if root_state.is_nil() {
+                return Ok(());
             }
-            TravelEvent::Pop(tn) => {
-                Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
-            }
+            root_state.dfs_travel(|event| match event {
+                TravelEvent::Push(tn, key_opt) => Python::with_gil(|py| {
+                    in_stack_callback.call1(py, (tn.node_id, key_opt.copied()))
+                })
+                .map(|_| ()),
+                TravelEvent::Pop(tn) => {
+                    Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
+                }
+            })
         })
     }
 
@@ -103,77 +147,106 @@ impl Trie {
         out_stack_callback: PyObject,
         root_node_id: Option<usize>,
     ) -> Result<(), PyErr> {
-        let root_state = self
-            .0
-            .get_state(root_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        if root_state.is_nil() {
-            return Ok(());
-        }
-        root_state.bfs_travel(|event| match event {
-            TravelEvent::Push(tn, key_opt) => {
-                Python::with_gil(|py| in_stack_callback.call1(py, (tn.node_id, key_opt.copied())))
-                    .map(|_| ())
+        for_both!(self.0.as_ref(), trie => {
+            let root_state = trie.get_state(root_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+            if root_state.is_nil() {
+                return Ok(());
             }
-            TravelEvent::Pop(tn) => {
-                Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
-            }
+            root_state.bfs_travel(|event| match event {
+                TravelEvent::Push(tn, key_opt) => Python::with_gil(|py| {
+                    in_stack_callback.call1(py, (tn.node_id, key_opt.copied()))
+                })
+                .map(|_| ()),
+                TravelEvent::Pop(tn) => {
+                    Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
+                }
+            })
         })
     }
 }
 
 #[pyclass]
-struct GeneralSAM(Arc<sam::GeneralSAM<char>>);
+struct GeneralSAM(Arc<Either<sam::GeneralSAM<char>, sam::GeneralSAM<u8>>>);
 
 #[pyclass]
-struct GeneralSAMState(Arc<sam::GeneralSAM<char>>, usize);
+struct GeneralSAMState(
+    Arc<Either<sam::GeneralSAM<char>, sam::GeneralSAM<u8>>>,
+    usize,
+);
 
 impl GeneralSAMState {
-    fn get_state(&self) -> sam::State<char> {
-        self.0.get_state(self.1)
+    fn get_state(&self) -> Either<sam::State<char>, sam::State<u8>> {
+        self.0
+            .as_ref()
+            .as_ref()
+            .map_either(|x| x.get_state(self.1), |x| x.get_state(self.1))
     }
 }
 
 #[pymethods]
 impl GeneralSAMState {
+    fn is_in_chars(&self) -> bool {
+        self.0.is_left()
+    }
+
+    fn is_in_bytes(&self) -> bool {
+        self.0.is_right()
+    }
+
     fn get_node_id(&self) -> usize {
         self.1
     }
 
     fn is_nil(&self) -> bool {
-        self.get_state().is_nil()
+        for_both!(self.get_state().as_ref(), x => x.is_nil())
     }
 
     fn is_root(&self) -> bool {
-        self.get_state().is_root()
+        for_both!(self.get_state().as_ref(), x => x.is_root())
     }
 
     fn is_accepting(&self) -> bool {
-        self.get_state().is_accepting()
+        for_both!(self.get_state().as_ref(), x => x.is_accepting())
     }
 
     fn get_suffix_parent_id(&self) -> usize {
-        self.get_state()
-            .get_node()
-            .map(|node| node.get_suffix_parent_id())
-            .unwrap_or(sam::SAM_NIL_NODE_ID)
+        for_both!(self.get_state().as_ref() , x => {
+            x.get_node()
+                .map(|node| node.get_suffix_parent_id())
+                .unwrap_or(sam::SAM_NIL_NODE_ID)
+        })
     }
 
     fn goto_suffix_parent(&mut self) {
-        let mut state = self.get_state();
-        state.goto_suffix_parent();
+        for_both!(self.get_state(), mut state => {
+            state.goto_suffix_parent();
+            self.1 = state.node_id;
+        })
+    }
+
+    fn goto_char(&mut self, t: char) {
+        let mut state = self.get_state().left().unwrap();
+        state.goto(&t);
         self.1 = state.node_id;
     }
 
-    fn goto(&mut self, t: char) {
-        let mut state = self.get_state();
+    fn goto_byte(&mut self, t: u8) {
+        let mut state = self.get_state().right().unwrap();
         state.goto(&t);
         self.1 = state.node_id;
     }
 
     fn feed_str(&mut self, s: &str) {
-        let state = self.get_state();
-        let state = state.feed_chars(s);
-        self.1 = state.node_id;
+        match self.get_state() {
+            Either::Left(state_chars) => {
+                let state_chars = state_chars.feed_chars(s);
+                self.1 = state_chars.node_id;
+            }
+            Either::Right(state_bytes) => {
+                let state_bytes = state_bytes.feed_ref_iter(s.as_bytes().iter());
+                self.1 = state_bytes.node_id;
+            }
+        }
     }
 
     #[pyo3(signature = (trie, in_stack_callback, out_stack_callback, trie_node_id=None))]
@@ -184,31 +257,36 @@ impl GeneralSAMState {
         out_stack_callback: PyObject,
         trie_node_id: Option<usize>,
     ) -> Result<(), PyErr> {
-        let tn = trie
-            .0
-            .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        self.0.dfs_along(tn, self.1, |event| match event {
-            TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
-                in_stack_callback
-                    .call1(
-                        py,
-                        (
-                            GeneralSAMState(self.0.clone(), st.node_id),
-                            tn.node_id,
-                            key_opt.copied(),
-                        ),
-                    )
-                    .map(|_| ())
+        assert!(trie.is_in_chars() == self.is_in_chars());
+        let sam_and_trie = self.0.as_ref().as_ref().map_either(
+            |sam_chars| (sam_chars, trie.0.as_ref().left().unwrap()),
+            |sam_bytes| (sam_bytes, trie.0.as_ref().right().unwrap()),
+        );
+        for_both!(sam_and_trie, (sam, trie) => {
+            let tn = trie.get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+            sam.dfs_along(tn, self.1, |event| match event {
+                TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
+                    in_stack_callback
+                        .call1(
+                            py,
+                            (
+                                GeneralSAMState(self.0.clone(), st.node_id),
+                                tn.node_id,
+                                key_opt.copied(),
+                            ),
+                        )
+                        .map(|_| ())
+                })
+                .map(|_| ()),
+                TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
+                    out_stack_callback
+                        .call1(
+                            py,
+                            (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
+                        )
+                        .map(|_| ())
+                }),
             })
-            .map(|_| ()),
-            TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
-                out_stack_callback
-                    .call1(
-                        py,
-                        (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
-                    )
-                    .map(|_| ())
-            }),
         })
     }
 
@@ -220,31 +298,36 @@ impl GeneralSAMState {
         out_stack_callback: PyObject,
         trie_node_id: Option<usize>,
     ) -> Result<(), PyErr> {
-        let tn = trie
-            .0
-            .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
-        self.0.bfs_along(tn, self.1, |event| match event {
-            TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
-                in_stack_callback
-                    .call1(
-                        py,
-                        (
-                            GeneralSAMState(self.0.clone(), st.node_id),
-                            tn.node_id,
-                            key_opt.copied(),
-                        ),
-                    )
-                    .map(|_| ())
+        assert!(trie.is_in_chars() == self.is_in_chars());
+        let sam_and_trie = self.0.as_ref().as_ref().map_either(
+            |sam_chars| (sam_chars, trie.0.as_ref().left().unwrap()),
+            |sam_bytes| (sam_bytes, trie.0.as_ref().right().unwrap()),
+        );
+        for_both!(sam_and_trie, (sam, trie) => {
+            let tn = trie.get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+            sam.bfs_along(tn, self.1, |event| match event {
+                TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
+                    in_stack_callback
+                        .call1(
+                            py,
+                            (
+                                GeneralSAMState(self.0.clone(), st.node_id),
+                                tn.node_id,
+                                key_opt.copied(),
+                            ),
+                        )
+                        .map(|_| ())
+                })
+                .map(|_| ()),
+                TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
+                    out_stack_callback
+                        .call1(
+                            py,
+                            (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
+                        )
+                        .map(|_| ())
+                }),
             })
-            .map(|_| ()),
-            TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
-                out_stack_callback
-                    .call1(
-                        py,
-                        (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
-                    )
-                    .map(|_| ())
-            }),
         })
     }
 }
@@ -252,19 +335,41 @@ impl GeneralSAMState {
 #[pymethods]
 impl GeneralSAM {
     #[staticmethod]
-    fn construct_from_str(s: &str) -> Self {
-        GeneralSAM(Arc::new(sam::GeneralSAM::construct_from_chars(s.chars())))
+    fn construct_from_chars(s: &str) -> Self {
+        GeneralSAM(Arc::new(Either::Left(
+            sam::GeneralSAM::construct_from_chars(s.chars()),
+        )))
+    }
+
+    #[staticmethod]
+    fn construct_from_bytes(s: &[u8]) -> Self {
+        GeneralSAM(Arc::new(Either::Right(
+            sam::GeneralSAM::construct_from_bytes(s),
+        )))
     }
 
     #[staticmethod]
     fn construct_from_trie(trie: &Trie) -> Self {
-        GeneralSAM(Arc::new(sam::GeneralSAM::construct_from_trie(
-            trie.0.get_root_state(),
-        )))
+        match trie.0.as_ref() {
+            Either::Left(trie_chars) => GeneralSAM(Arc::new(Either::Left(
+                sam::GeneralSAM::construct_from_trie(trie_chars.get_root_state()),
+            ))),
+            Either::Right(trie_bytes) => GeneralSAM(Arc::new(Either::Right(
+                sam::GeneralSAM::construct_from_trie(trie_bytes.get_root_state()),
+            ))),
+        }
+    }
+
+    fn is_in_chars(&self) -> bool {
+        self.0.is_left()
+    }
+
+    fn is_in_bytes(&self) -> bool {
+        self.0.is_right()
     }
 
     fn num_of_nodes(&self) -> usize {
-        self.0.num_of_nodes()
+        for_both!(self.0.as_ref(), x => x.num_of_nodes())
     }
 
     fn get_root_state(&self) -> GeneralSAMState {
@@ -276,10 +381,11 @@ impl GeneralSAM {
     }
 
     fn get_topo_order(&self) -> Vec<GeneralSAMState> {
-        self.0
-            .get_topo_order()
-            .map(|s| self.get_state(s.node_id))
-            .collect()
+        for_both!(self.0.as_ref(), x => {
+            x.get_topo_order()
+                .map(|s| self.get_state(s.node_id))
+                .collect()
+        })
     }
 }
 
