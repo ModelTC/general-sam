@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, VecDeque};
 use crate::trie_alike::{ByteChain, TrieNodeAlike};
 
 #[derive(Debug, Clone)]
-pub struct Node<T: Ord + Copy> {
+pub struct Node<T: Ord + Clone> {
     trans: BTreeMap<T, usize>,
     accept: bool,
     len: usize,
@@ -11,18 +11,18 @@ pub struct Node<T: Ord + Copy> {
 }
 
 #[derive(Debug, Clone)]
-pub struct GeneralSAM<T: Ord + Copy> {
+pub struct GeneralSAM<T: Ord + Clone> {
     node_pool: Vec<Node<T>>,
     topo_order: Vec<usize>,
 }
 
 #[derive(Debug, Clone)]
-pub struct State<'s, T: Ord + Copy> {
+pub struct State<'s, T: Ord + Clone> {
     pub sam: &'s GeneralSAM<T>,
     pub node_id: usize,
 }
 
-impl<T: Ord + Copy> Node<T> {
+impl<T: Ord + Clone> Node<T> {
     fn new(accept: bool, len: usize, link: usize) -> Self {
         Self {
             trans: BTreeMap::new(),
@@ -65,7 +65,7 @@ impl GeneralSAM<char> {
 const SAM_NIL_NODE_ID: usize = 0;
 const SAM_ROOT_NODE_ID: usize = 1;
 
-impl<T: Ord + Copy> Default for GeneralSAM<T> {
+impl<T: Ord + Clone> Default for GeneralSAM<T> {
     fn default() -> Self {
         Self {
             node_pool: vec![
@@ -77,7 +77,7 @@ impl<T: Ord + Copy> Default for GeneralSAM<T> {
     }
 }
 
-impl<T: Ord + Copy> GeneralSAM<T> {
+impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn get_root_state(&self) -> State<T> {
         State {
             sam: self,
@@ -174,7 +174,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
             if p_node.trans.contains_key(&key) {
                 break;
             }
-            p_node.trans.insert(key, new_node_id);
+            p_node.trans.insert(key.clone(), new_node_id);
             p_node_id = p_node.link;
         }
 
@@ -211,7 +211,7 @@ impl<T: Ord + Copy> GeneralSAM<T> {
     }
 }
 
-impl<'s, T: Ord + Copy> State<'s, T> {
+impl<'s, T: Ord + Clone> State<'s, T> {
     pub fn get_node(&self) -> &'s Node<T> {
         &self.sam.node_pool[self.node_id]
     }
