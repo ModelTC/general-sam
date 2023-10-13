@@ -256,38 +256,31 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         let mut queue = VecDeque::new();
         let mut cur_node_id = start_node_id;
 
-        let wrapped_callback = |event: TravelEvent<&TN, &TN::InnerType>| -> Result<(), E> {
-            match event {
-                TravelEvent::Push(tn, key_opt) => {
-                    if let Some(key) = key_opt {
-                        let next_node_id = self
-                            .node_pool
-                            .get(cur_node_id)
-                            .and_then(|x| x.trans.get(key).copied())
-                            .unwrap_or(SAM_NIL_NODE_ID);
-                        callback(TravelEvent::Push(
-                            (self.get_state(next_node_id), tn),
-                            key_opt,
-                        ))?;
-                        queue.push_back(next_node_id);
-                    } else {
-                        callback(TravelEvent::Push(
-                            (self.get_state(start_node_id), tn),
-                            key_opt,
-                        ))?;
-                        queue.push_back(start_node_id);
-                    }
-                    Ok(())
-                }
-                TravelEvent::Pop(tn) => {
-                    cur_node_id = queue.pop_front().unwrap();
-                    callback(TravelEvent::Pop((self.get_state(cur_node_id), tn)))?;
-                    Ok(())
-                }
+        trie_node.bfs_travel(|event| match event {
+            TravelEvent::Push(tn, Some(key)) => {
+                let next_node_id = self
+                    .node_pool
+                    .get(cur_node_id)
+                    .and_then(|x| x.trans.get(key).copied())
+                    .unwrap_or(SAM_NIL_NODE_ID);
+                callback(TravelEvent::Push(
+                    (self.get_state(next_node_id), tn),
+                    Some(key),
+                ))?;
+                queue.push_back(next_node_id);
+                Ok(())
             }
-        };
-
-        trie_node.bfs_travel(wrapped_callback)
+            TravelEvent::Push(tn, None) => {
+                callback(TravelEvent::Push((self.get_state(start_node_id), tn), None))?;
+                queue.push_back(start_node_id);
+                Ok(())
+            }
+            TravelEvent::Pop(tn) => {
+                cur_node_id = queue.pop_front().unwrap();
+                callback(TravelEvent::Pop((self.get_state(cur_node_id), tn)))?;
+                Ok(())
+            }
+        })
     }
 
     pub fn dfs_along_from_root<
@@ -314,26 +307,23 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     ) -> Result<(), E> {
         let mut stack: Vec<usize> = Vec::new();
 
-        let wrapped_callback = |event: TravelEvent<&TN, &TN::InnerType>| match event {
-            TravelEvent::Push(tn, key_opt) => {
-                if let Some(key) = key_opt {
-                    let next_node_id = self
-                        .node_pool
-                        .get(*stack.last().unwrap())
-                        .and_then(|x| x.trans.get(key).copied())
-                        .unwrap_or(SAM_NIL_NODE_ID);
-                    callback(TravelEvent::Push(
-                        (self.get_state(next_node_id), tn),
-                        key_opt,
-                    ))?;
-                    stack.push(next_node_id);
-                } else {
-                    callback(TravelEvent::Push(
-                        (self.get_state(start_node_id), tn),
-                        key_opt,
-                    ))?;
-                    stack.push(start_node_id);
-                }
+        trie_node.dfs_travel(|event| match event {
+            TravelEvent::Push(tn, Some(key)) => {
+                let next_node_id = self
+                    .node_pool
+                    .get(*stack.last().unwrap())
+                    .and_then(|x| x.trans.get(key).copied())
+                    .unwrap_or(SAM_NIL_NODE_ID);
+                callback(TravelEvent::Push(
+                    (self.get_state(next_node_id), tn),
+                    Some(key),
+                ))?;
+                stack.push(next_node_id);
+                Ok(())
+            }
+            TravelEvent::Push(tn, None) => {
+                callback(TravelEvent::Push((self.get_state(start_node_id), tn), None))?;
+                stack.push(start_node_id);
                 Ok(())
             }
             TravelEvent::Pop(tn) => {
@@ -341,9 +331,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
                 callback(TravelEvent::Pop((self.get_state(node_id), tn)))?;
                 Ok(())
             }
-        };
-
-        trie_node.dfs_travel(wrapped_callback)
+        })
     }
 }
 

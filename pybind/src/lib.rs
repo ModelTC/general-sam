@@ -85,32 +85,39 @@ impl Trie {
         if root_state.is_nil() {
             return Ok(());
         }
-
-        let root_node_id = root_state.node_id;
-
-        let mut stack = Vec::new();
-        let in_stack = |node_id: usize, key: Option<char>| {
-            Python::with_gil(|py| in_stack_callback.call1(py, (node_id, key))).map(|_| ())
-        };
-        let out_stack = |node_id: usize| {
-            Python::with_gil(|py| out_stack_callback.call1(py, (node_id,))).map(|_| ())
-        };
-
-        stack.push(root_state.next_states());
-        in_stack(root_node_id, None)?;
-
-        while let Some(iter) = stack.last_mut() {
-            let node_id = iter.get_state().node_id;
-            if let Some((key, next_state)) = iter.next() {
-                let next_node_id = next_state.node_id;
-                stack.push(next_state.next_states());
-                in_stack(next_node_id, Some(key))?;
-            } else {
-                out_stack(node_id)?;
-                stack.pop();
+        root_state.dfs_travel(|event| match event {
+            TravelEvent::Push(tn, key_opt) => {
+                Python::with_gil(|py| in_stack_callback.call1(py, (tn.node_id, key_opt.copied())))
+                    .map(|_| ())
             }
+            TravelEvent::Pop(tn) => {
+                Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
+            }
+        })
+    }
+
+    #[pyo3(signature = (in_stack_callback, out_stack_callback, root_node_id=None))]
+    fn bfs_travel(
+        &self,
+        in_stack_callback: PyObject,
+        out_stack_callback: PyObject,
+        root_node_id: Option<usize>,
+    ) -> Result<(), PyErr> {
+        let root_state = self
+            .0
+            .get_state(root_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+        if root_state.is_nil() {
+            return Ok(());
         }
-        Ok(())
+        root_state.bfs_travel(|event| match event {
+            TravelEvent::Push(tn, key_opt) => {
+                Python::with_gil(|py| in_stack_callback.call1(py, (tn.node_id, key_opt.copied())))
+                    .map(|_| ())
+            }
+            TravelEvent::Pop(tn) => {
+                Python::with_gil(|py| out_stack_callback.call1(py, (tn.node_id,))).map(|_| ())
+            }
+        })
     }
 }
 
@@ -160,6 +167,78 @@ impl GeneralSAMState {
         let state = self.get_state();
         let state = state.feed_chars(s);
         self.1 = state.node_id;
+    }
+
+    #[pyo3(signature = (trie, in_stack_callback, out_stack_callback, trie_node_id=None))]
+    fn dfs_along(
+        &self,
+        trie: &Trie,
+        in_stack_callback: PyObject,
+        out_stack_callback: PyObject,
+        trie_node_id: Option<usize>,
+    ) -> Result<(), PyErr> {
+        let tn = trie
+            .0
+            .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+        self.0.bfs_along(tn, self.1, |event| match event {
+            TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
+                in_stack_callback
+                    .call1(
+                        py,
+                        (
+                            GeneralSAMState(self.0.clone(), st.node_id),
+                            tn.node_id,
+                            key_opt.copied(),
+                        ),
+                    )
+                    .map(|_| ())
+            })
+            .map(|_| ()),
+            TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
+                out_stack_callback
+                    .call1(
+                        py,
+                        (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
+                    )
+                    .map(|_| ())
+            }),
+        })
+    }
+
+    #[pyo3(signature = (trie, in_stack_callback, out_stack_callback, trie_node_id=None))]
+    fn bfs_along(
+        &self,
+        trie: &Trie,
+        in_stack_callback: PyObject,
+        out_stack_callback: PyObject,
+        trie_node_id: Option<usize>,
+    ) -> Result<(), PyErr> {
+        let tn = trie
+            .0
+            .get_state(trie_node_id.unwrap_or(trie::TRIE_ROOT_NODE_ID));
+        self.0.dfs_along(tn, self.1, |event| match event {
+            TravelEvent::Push((st, tn), key_opt) => Python::with_gil(|py| {
+                in_stack_callback
+                    .call1(
+                        py,
+                        (
+                            GeneralSAMState(self.0.clone(), st.node_id),
+                            tn.node_id,
+                            key_opt.copied(),
+                        ),
+                    )
+                    .map(|_| ())
+            })
+            .map(|_| ()),
+            TravelEvent::Pop((st, tn)) => Python::with_gil(|py| {
+                out_stack_callback
+                    .call1(
+                        py,
+                        (GeneralSAMState(self.0.clone(), st.node_id), tn.node_id),
+                    )
+                    .map(|_| ())
+            }),
+        })
     }
 }
 
