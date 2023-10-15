@@ -39,7 +39,10 @@ use general_sam::sam::GeneralSAM;
 let sam = GeneralSAM::construct_from_bytes("abcbc");
 // => GeneralSAM<u8>
 
+// "cbc" is a suffix.
 assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
+
+// "bcb" isn't a suffix.
 assert!(!sam.get_root_state().feed_bytes("bcb").is_accepting());
 ```
 
@@ -50,12 +53,20 @@ let sam = GeneralSAM::construct_from_chars("abcbc".chars());
 // => GeneralSAM<char>
 
 let state = sam.get_root_state();
+
+// "b" is not a suffix but a substring.
 let state = state.feed_chars("b");
 assert!(!state.is_accepting());
+
+// "bc" is a suffix.
 let state = state.feed_chars("c");
 assert!(state.is_accepting());
+
+// "bcbc" is also a suffix.
 let state = state.feed_chars("bc");
 assert!(state.is_accepting());
+
+// "bcbcbc" is not a substring.
 let state = state.feed_chars("bc");
 assert!(!state.is_accepting() && state.is_nil());
 ```
