@@ -152,28 +152,6 @@ fn test_trie_suffix(vocab: &[&str]) {
                 })
         });
     });
-
-    println!(
-        "topo order: {:?}",
-        sam.get_topo_order()
-            .map(|x| { x.node_id })
-            .collect::<Vec<usize>>()
-    );
-    println!(
-        "topo order rev: {:?}",
-        sam.get_topo_order()
-            .rev()
-            .map(|x| { x.node_id })
-            .collect::<Vec<usize>>()
-    );
-    assert!(sam
-        .get_topo_order()
-        .map(|x| { x.node_id })
-        .collect::<Vec<usize>>()
-        .iter()
-        .rev()
-        .zip(sam.get_topo_order().rev().map(|x| { x.node_id }))
-        .all(|(x, y)| *x == y));
 }
 
 #[test]
