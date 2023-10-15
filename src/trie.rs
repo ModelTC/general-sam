@@ -2,13 +2,14 @@ use std::collections::{btree_map, BTreeMap};
 
 use crate::trie_alike::TrieNodeAlike;
 
-pub const TRIE_NIL_NODE_ID: usize = 0;
-pub const TRIE_ROOT_NODE_ID: usize = 1;
+pub type TrieNodeID = usize;
+pub const TRIE_NIL_NODE_ID: TrieNodeID = 0;
+pub const TRIE_ROOT_NODE_ID: TrieNodeID = 1;
 
 #[derive(Debug, Clone)]
 pub struct TrieNode<T: Ord + Clone> {
-    trans: BTreeMap<T, usize>,
-    parent: usize,
+    trans: BTreeMap<T, TrieNodeID>,
+    parent: TrieNodeID,
     pub accept: bool,
 }
 
@@ -20,11 +21,11 @@ pub struct Trie<T: Ord + Clone> {
 #[derive(Debug, Clone)]
 pub struct TrieState<'s, T: Ord + Clone> {
     pub trie: &'s Trie<T>,
-    pub node_id: usize,
+    pub node_id: TrieNodeID,
 }
 
 impl<T: Ord + Clone> TrieNode<T> {
-    fn new(parent: usize) -> Self {
+    fn new(parent: TrieNodeID) -> Self {
         Self {
             trans: Default::default(),
             parent,
@@ -32,11 +33,11 @@ impl<T: Ord + Clone> TrieNode<T> {
         }
     }
 
-    pub fn get_trans(&self) -> &BTreeMap<T, usize> {
+    pub fn get_trans(&self) -> &BTreeMap<T, TrieNodeID> {
         &self.trans
     }
 
-    pub fn get_parent(&self) -> usize {
+    pub fn get_parent(&self) -> TrieNodeID {
         self.parent
     }
 }
@@ -54,7 +55,7 @@ impl<T: Ord + Clone> Trie<T> {
         self.node_pool.len()
     }
 
-    pub fn get_state(&self, node_id: usize) -> TrieState<T> {
+    pub fn get_state(&self, node_id: TrieNodeID) -> TrieState<T> {
         if node_id >= self.node_pool.len() {
             return TrieState {
                 trie: self,
@@ -67,7 +68,7 @@ impl<T: Ord + Clone> Trie<T> {
         }
     }
 
-    pub fn get_node(&self, node_id: usize) -> Option<&TrieNode<T>> {
+    pub fn get_node(&self, node_id: TrieNodeID) -> Option<&TrieNode<T>> {
         self.node_pool.get(node_id)
     }
 
@@ -79,17 +80,17 @@ impl<T: Ord + Clone> Trie<T> {
         self.get_state(TRIE_ROOT_NODE_ID)
     }
 
-    fn alloc_node(&mut self, parent: usize) -> usize {
+    fn alloc_node(&mut self, parent: TrieNodeID) -> TrieNodeID {
         let node_id = self.node_pool.len();
         self.node_pool.push(TrieNode::new(parent));
         node_id
     }
 
-    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s T>>(&'s mut self, iter: Iter) -> usize {
+    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s T>>(&'s mut self, iter: Iter) -> TrieNodeID {
         self.insert_iter(iter.cloned())
     }
 
-    pub fn insert_iter<Iter: Iterator<Item = T>>(&mut self, iter: Iter) -> usize {
+    pub fn insert_iter<Iter: Iterator<Item = T>>(&mut self, iter: Iter) -> TrieNodeID {
         let mut current = TRIE_ROOT_NODE_ID;
         iter.for_each(|t| {
             current = match self.node_pool[current].trans.get(&t) {
@@ -137,26 +138,26 @@ impl<'s, T: Ord + Clone> TrieState<'s, T> {
 }
 
 #[derive(Debug)]
-pub struct NextStateIter<'s, T: Ord + Clone> {
+pub struct NextTrieStateIter<'s, T: Ord + Clone> {
     state: TrieState<'s, T>,
-    iter: btree_map::Iter<'s, T, usize>,
+    iter: btree_map::Iter<'s, T, TrieNodeID>,
 }
 
 impl<'s, T: Ord + Clone> TrieNodeAlike for TrieState<'s, T> {
     type InnerType = T;
-    type NextStateIter = NextStateIter<'s, T>;
+    type NextStateIter = NextTrieStateIter<'s, T>;
 
     fn is_accepting(&self) -> bool {
         self.get_node().map(|x| x.accept).unwrap_or(false)
     }
 
-    fn next_states(self) -> NextStateIter<'s, T> {
+    fn next_states(self) -> NextTrieStateIter<'s, T> {
         let iter = self.get_node().unwrap().trans.iter();
-        NextStateIter { state: self, iter }
+        NextTrieStateIter { state: self, iter }
     }
 }
 
-impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
+impl<'s, T: Ord + Clone> Iterator for NextTrieStateIter<'s, T> {
     type Item = (T, TrieState<'s, T>);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -166,7 +167,7 @@ impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
     }
 }
 
-impl<'s, T: Ord + Clone> NextStateIter<'s, T> {
+impl<'s, T: Ord + Clone> NextTrieStateIter<'s, T> {
     pub fn get_state(&self) -> &TrieState<T> {
         &self.state
     }
