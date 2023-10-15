@@ -105,12 +105,8 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         }
     }
 
-    pub fn get_topo_order(&self) -> TopoOrderStateIter<T> {
-        TopoOrderStateIter {
-            sam: self,
-            head: 0,
-            rear: self.topo_order.len(),
-        }
+    pub fn get_topo_sorted_node_ids(&self) -> &Vec<usize> {
+        &self.topo_order
     }
 
     pub fn construct_from_trie<TN: TrieNodeAlike>(node: TN) -> Self
@@ -251,41 +247,5 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool[q_node_id].link = clone_node_id;
 
         new_node_id
-    }
-}
-
-pub struct TopoOrderStateIter<'s, T: Ord + Clone> {
-    sam: &'s GeneralSAM<T>,
-    head: usize,
-    rear: usize,
-}
-
-impl<'s, T: Ord + Clone> Iterator for TopoOrderStateIter<'s, T> {
-    type Item = GeneralSAMState<'s, T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.head >= self.sam.topo_order.len() {
-            return None;
-        }
-        let res = GeneralSAMState {
-            sam: self.sam,
-            node_id: self.sam.topo_order[self.head],
-        };
-        self.head += 1;
-        Some(res)
-    }
-}
-
-impl<'s, T: Ord + Clone> DoubleEndedIterator for TopoOrderStateIter<'s, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.rear == 0 {
-            return None;
-        }
-        self.rear -= 1;
-        let res = GeneralSAMState {
-            sam: self.sam,
-            node_id: self.sam.topo_order[self.rear],
-        };
-        Some(res)
     }
 }
