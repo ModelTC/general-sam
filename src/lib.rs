@@ -74,8 +74,8 @@ pub use sam::{
     GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
     SAM_ROOT_NODE_ID,
 };
-
 pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
+pub use trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
 
 #[cfg(test)]
 mod tests;
