@@ -1,6 +1,9 @@
 # general-sam
 
-![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/general-sam.svg)](https://crates.io/crates/general-sam)
+[![Docs.rs](https://img.shields.io/docsrs/general-sam.svg)](https://docs.rs/general-sam)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational.svg)](#license)
+[![Build status](https://github.com/ModelTC/general-sam/actions/workflows/ci.yml/badge.svg)](https://github.com/ModelTC/general-sam/actions)
 
 A general suffix automaton implementation in Rust.
 
