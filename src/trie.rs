@@ -6,7 +6,7 @@ pub const TRIE_NIL_NODE_ID: usize = 0;
 pub const TRIE_ROOT_NODE_ID: usize = 1;
 
 #[derive(Debug, Clone)]
-pub struct Node<T: Ord + Clone> {
+pub struct TrieNode<T: Ord + Clone> {
     trans: BTreeMap<T, usize>,
     parent: usize,
     pub accept: bool,
@@ -14,16 +14,16 @@ pub struct Node<T: Ord + Clone> {
 
 #[derive(Debug, Clone)]
 pub struct Trie<T: Ord + Clone> {
-    node_pool: Vec<Node<T>>,
+    node_pool: Vec<TrieNode<T>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct State<'s, T: Ord + Clone> {
+pub struct TrieState<'s, T: Ord + Clone> {
     pub trie: &'s Trie<T>,
     pub node_id: usize,
 }
 
-impl<T: Ord + Clone> Node<T> {
+impl<T: Ord + Clone> TrieNode<T> {
     fn new(parent: usize) -> Self {
         Self {
             trans: Default::default(),
@@ -44,7 +44,7 @@ impl<T: Ord + Clone> Node<T> {
 impl<T: Ord + Clone> Default for Trie<T> {
     fn default() -> Self {
         Self {
-            node_pool: vec![Node::new(TRIE_NIL_NODE_ID), Node::new(TRIE_NIL_NODE_ID)],
+            node_pool: vec![TrieNode::new(TRIE_NIL_NODE_ID), TrieNode::new(TRIE_NIL_NODE_ID)],
         }
     }
 }
@@ -54,34 +54,34 @@ impl<T: Ord + Clone> Trie<T> {
         self.node_pool.len()
     }
 
-    pub fn get_state(&self, node_id: usize) -> State<T> {
+    pub fn get_state(&self, node_id: usize) -> TrieState<T> {
         if node_id >= self.node_pool.len() {
-            return State {
+            return TrieState {
                 trie: self,
                 node_id: TRIE_NIL_NODE_ID,
             };
         }
-        State {
+        TrieState {
             trie: self,
             node_id,
         }
     }
 
-    pub fn get_node(&self, node_id: usize) -> Option<&Node<T>> {
+    pub fn get_node(&self, node_id: usize) -> Option<&TrieNode<T>> {
         self.node_pool.get(node_id)
     }
 
-    pub fn get_root_node(&self) -> &Node<T> {
+    pub fn get_root_node(&self) -> &TrieNode<T> {
         self.get_node(TRIE_ROOT_NODE_ID).unwrap()
     }
 
-    pub fn get_root_state(&self) -> State<T> {
+    pub fn get_root_state(&self) -> TrieState<T> {
         self.get_state(TRIE_ROOT_NODE_ID)
     }
 
     fn alloc_node(&mut self, parent: usize) -> usize {
         let node_id = self.node_pool.len();
-        self.node_pool.push(Node::new(parent));
+        self.node_pool.push(TrieNode::new(parent));
         node_id
     }
 
@@ -106,7 +106,7 @@ impl<T: Ord + Clone> Trie<T> {
     }
 }
 
-impl<'s, T: Ord + Clone> State<'s, T> {
+impl<'s, T: Ord + Clone> TrieState<'s, T> {
     pub fn is_nil(&self) -> bool {
         self.node_id == TRIE_NIL_NODE_ID
     }
@@ -115,7 +115,7 @@ impl<'s, T: Ord + Clone> State<'s, T> {
         self.node_id == TRIE_ROOT_NODE_ID
     }
 
-    pub fn get_node(&self) -> Option<&'s Node<T>> {
+    pub fn get_node(&self) -> Option<&'s TrieNode<T>> {
         self.trie.get_node(self.node_id)
     }
 
@@ -138,11 +138,11 @@ impl<'s, T: Ord + Clone> State<'s, T> {
 
 #[derive(Debug)]
 pub struct NextStateIter<'s, T: Ord + Clone> {
-    state: State<'s, T>,
+    state: TrieState<'s, T>,
     iter: btree_map::Iter<'s, T, usize>,
 }
 
-impl<'s, T: Ord + Clone> TrieNodeAlike for State<'s, T> {
+impl<'s, T: Ord + Clone> TrieNodeAlike for TrieState<'s, T> {
     type InnerType = T;
     type NextStateIter = NextStateIter<'s, T>;
 
@@ -157,7 +157,7 @@ impl<'s, T: Ord + Clone> TrieNodeAlike for State<'s, T> {
 }
 
 impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
-    type Item = (T, State<'s, T>);
+    type Item = (T, TrieState<'s, T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
@@ -167,7 +167,7 @@ impl<'s, T: Ord + Clone> Iterator for NextStateIter<'s, T> {
 }
 
 impl<'s, T: Ord + Clone> NextStateIter<'s, T> {
-    pub fn get_state(&self) -> &State<T> {
+    pub fn get_state(&self) -> &TrieState<T> {
         &self.state
     }
 }
