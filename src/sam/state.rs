@@ -1,9 +1,25 @@
+use std::collections::VecDeque;
+
+use crate::trie_alike::{TravelEvent, TrieNodeAlike};
+
 use super::{GeneralSAM, GeneralSAMNode, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
 
 #[derive(Debug, Clone)]
 pub struct GeneralSAMState<'s, T: Ord + Clone> {
     pub sam: &'s GeneralSAM<T>,
     pub node_id: usize,
+}
+
+impl<'s> GeneralSAMState<'s, u8> {
+    pub fn feed_bytes(self, seq: &'s str) -> Self {
+        self.feed_ref(seq.as_bytes())
+    }
+}
+
+impl<'s> GeneralSAMState<'s, char> {
+    pub fn feed_chars(self, seq: &'s str) -> Self {
+        self.feed(seq.chars())
+    }
 }
 
 impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
@@ -69,16 +85,89 @@ impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
         }
         self
     }
-}
 
-impl<'s> GeneralSAMState<'s, u8> {
-    pub fn feed_bytes(self, seq: &'s str) -> Self {
-        self.feed_ref(seq.as_bytes())
+    pub fn bfs_along<
+        TN: TrieNodeAlike<InnerType = T> + Sized,
+        E,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+    >(
+        &self,
+        trie_node: TN,
+        mut callback: F,
+    ) -> Result<(), E> {
+        let mut queue = VecDeque::new();
+        let mut cur_node_id = self.node_id;
+
+        trie_node.bfs_travel(|event| match event {
+            TravelEvent::Push(tn, Some(key)) => {
+                let next_node_id = self
+                    .sam
+                    .node_pool
+                    .get(cur_node_id)
+                    .and_then(|x| x.trans.get(&key).copied())
+                    .unwrap_or(SAM_NIL_NODE_ID);
+                callback(TravelEvent::Push(
+                    (self.sam.get_state(next_node_id), tn),
+                    Some(key),
+                ))?;
+                queue.push_back(next_node_id);
+                Ok(())
+            }
+            TravelEvent::Push(tn, None) => {
+                callback(TravelEvent::Push(
+                    (self.sam.get_state(self.node_id), tn),
+                    None,
+                ))?;
+                queue.push_back(self.node_id);
+                Ok(())
+            }
+            TravelEvent::Pop(tn) => {
+                cur_node_id = queue.pop_front().unwrap();
+                callback(TravelEvent::Pop((self.sam.get_state(cur_node_id), tn)))?;
+                Ok(())
+            }
+        })
     }
-}
 
-impl<'s> GeneralSAMState<'s, char> {
-    pub fn feed_chars(self, seq: &'s str) -> Self {
-        self.feed(seq.chars())
+    pub fn dfs_along<
+        TN: TrieNodeAlike<InnerType = T> + Clone,
+        E,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+    >(
+        &self,
+        trie_node: TN,
+        mut callback: F,
+    ) -> Result<(), E> {
+        let mut stack: Vec<usize> = Vec::new();
+
+        trie_node.dfs_travel(|event| match event {
+            TravelEvent::Push(tn, Some(key)) => {
+                let next_node_id = self
+                    .sam
+                    .node_pool
+                    .get(*stack.last().unwrap())
+                    .and_then(|x| x.trans.get(&key).copied())
+                    .unwrap_or(SAM_NIL_NODE_ID);
+                callback(TravelEvent::Push(
+                    (self.sam.get_state(next_node_id), tn),
+                    Some(key),
+                ))?;
+                stack.push(next_node_id);
+                Ok(())
+            }
+            TravelEvent::Push(tn, None) => {
+                callback(TravelEvent::Push(
+                    (self.sam.get_state(self.node_id), tn),
+                    None,
+                ))?;
+                stack.push(self.node_id);
+                Ok(())
+            }
+            TravelEvent::Pop(tn) => {
+                let node_id = stack.pop().unwrap();
+                callback(TravelEvent::Pop((self.sam.get_state(node_id), tn)))?;
+                Ok(())
+            }
+        })
     }
 }
