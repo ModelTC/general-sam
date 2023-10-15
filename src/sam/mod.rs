@@ -8,25 +8,26 @@ use std::{
 
 use crate::trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
 
-pub const SAM_NIL_NODE_ID: usize = 0;
-pub const SAM_ROOT_NODE_ID: usize = 1;
+pub type GeneralSAMNodeID = usize;
+pub const SAM_NIL_NODE_ID: GeneralSAMNodeID = 0;
+pub const SAM_ROOT_NODE_ID: GeneralSAMNodeID = 1;
 
 #[derive(Debug, Clone)]
 pub struct GeneralSAMNode<T: Ord + Clone> {
-    trans: BTreeMap<T, usize>,
+    trans: BTreeMap<T, GeneralSAMNodeID>,
     accept: bool,
     len: usize,
-    link: usize,
+    link: GeneralSAMNodeID,
 }
 
 #[derive(Debug, Clone)]
 pub struct GeneralSAM<T: Ord + Clone> {
     node_pool: Vec<GeneralSAMNode<T>>,
-    topo_order: Vec<usize>,
+    topo_order: Vec<GeneralSAMNodeID>,
 }
 
 impl<T: Ord + Clone> GeneralSAMNode<T> {
-    fn new(accept: bool, len: usize, link: usize) -> Self {
+    fn new(accept: bool, len: usize, link: GeneralSAMNodeID) -> Self {
         Self {
             trans: BTreeMap::new(),
             accept,
@@ -43,11 +44,11 @@ impl<T: Ord + Clone> GeneralSAMNode<T> {
         self.len
     }
 
-    pub fn get_suffix_parent_id(&self) -> usize {
+    pub fn get_suffix_parent_id(&self) -> GeneralSAMNodeID {
         self.link
     }
 
-    pub fn get_trans(&self) -> &BTreeMap<T, usize> {
+    pub fn get_trans(&self) -> &BTreeMap<T, GeneralSAMNodeID> {
         &self.trans
     }
 }
@@ -94,7 +95,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
 
-    pub fn get_state(&self, node_id: usize) -> GeneralSAMState<T> {
+    pub fn get_state(&self, node_id: GeneralSAMNodeID) -> GeneralSAMState<T> {
         if node_id < self.node_pool.len() {
             GeneralSAMState { sam: self, node_id }
         } else {
@@ -105,7 +106,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         }
     }
 
-    pub fn get_topo_sorted_node_ids(&self) -> &Vec<usize> {
+    pub fn get_topo_sorted_node_ids(&self) -> &Vec<GeneralSAMNodeID> {
         &self.topo_order
     }
 
@@ -184,7 +185,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool[SAM_NIL_NODE_ID].accept = false;
     }
 
-    fn alloc_node(&mut self, node: GeneralSAMNode<T>) -> usize {
+    fn alloc_node(&mut self, node: GeneralSAMNode<T>) -> GeneralSAMNodeID {
         let id = self.node_pool.len();
         self.node_pool.push(node);
         id
@@ -192,10 +193,10 @@ impl<T: Ord + Clone> GeneralSAM<T> {
 
     fn insert_node_trans<Key: Into<T>>(
         &mut self,
-        last_node_id: usize,
+        last_node_id: GeneralSAMNodeID,
         key: Key,
         accept: bool,
-    ) -> usize {
+    ) -> GeneralSAMNodeID {
         let key: T = key.into();
 
         let new_node_id = {
