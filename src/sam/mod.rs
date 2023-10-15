@@ -1,3 +1,6 @@
+mod state;
+pub use state::GeneralSAMState;
+
 use std::{
     collections::{BTreeMap, VecDeque},
     convert::Infallible,
@@ -9,7 +12,7 @@ pub const SAM_NIL_NODE_ID: usize = 0;
 pub const SAM_ROOT_NODE_ID: usize = 1;
 
 #[derive(Debug, Clone)]
-pub struct Node<T: Ord + Clone> {
+pub struct GeneralSAMNode<T: Ord + Clone> {
     trans: BTreeMap<T, usize>,
     accept: bool,
     len: usize,
@@ -18,17 +21,11 @@ pub struct Node<T: Ord + Clone> {
 
 #[derive(Debug, Clone)]
 pub struct GeneralSAM<T: Ord + Clone> {
-    node_pool: Vec<Node<T>>,
+    node_pool: Vec<GeneralSAMNode<T>>,
     topo_order: Vec<usize>,
 }
 
-#[derive(Debug, Clone)]
-pub struct State<'s, T: Ord + Clone> {
-    pub sam: &'s GeneralSAM<T>,
-    pub node_id: usize,
-}
-
-impl<T: Ord + Clone> Node<T> {
+impl<T: Ord + Clone> GeneralSAMNode<T> {
     fn new(accept: bool, len: usize, link: usize) -> Self {
         Self {
             trans: BTreeMap::new(),
@@ -80,8 +77,8 @@ impl<T: Ord + Clone> Default for GeneralSAM<T> {
     fn default() -> Self {
         Self {
             node_pool: vec![
-                Node::new(false, 0, SAM_NIL_NODE_ID),
-                Node::new(true, 0, SAM_NIL_NODE_ID),
+                GeneralSAMNode::new(false, 0, SAM_NIL_NODE_ID),
+                GeneralSAMNode::new(true, 0, SAM_NIL_NODE_ID),
             ],
             topo_order: Default::default(),
         }
@@ -93,15 +90,15 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool.len()
     }
 
-    pub fn get_root_state(&self) -> State<T> {
+    pub fn get_root_state(&self) -> GeneralSAMState<T> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
 
-    pub fn get_state(&self, node_id: usize) -> State<T> {
+    pub fn get_state(&self, node_id: usize) -> GeneralSAMState<T> {
         if node_id < self.node_pool.len() {
-            State { sam: self, node_id }
+            GeneralSAMState { sam: self, node_id }
         } else {
-            State {
+            GeneralSAMState {
                 sam: self,
                 node_id: SAM_NIL_NODE_ID,
             }
@@ -148,8 +145,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
                     last_node_id = queue.pop_front().unwrap();
                 }
                 TravelEvent::Push(tn, Some(key)) => {
-                    let new_node_id =
-                        self.insert_node_trans(last_node_id, key, tn.is_accepting());
+                    let new_node_id = self.insert_node_trans(last_node_id, key, tn.is_accepting());
                     queue.push_back(new_node_id);
                 }
             };
@@ -192,7 +188,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool[SAM_NIL_NODE_ID].accept = false;
     }
 
-    fn alloc_node(&mut self, node: Node<T>) -> usize {
+    fn alloc_node(&mut self, node: GeneralSAMNode<T>) -> usize {
         let id = self.node_pool.len();
         self.node_pool.push(node);
         id
@@ -208,7 +204,11 @@ impl<T: Ord + Clone> GeneralSAM<T> {
 
         let new_node_id = {
             let last_node = &self.node_pool[last_node_id];
-            self.alloc_node(Node::new(accept, last_node.len + 1, SAM_NIL_NODE_ID))
+            self.alloc_node(GeneralSAMNode::new(
+                accept,
+                last_node.len + 1,
+                SAM_NIL_NODE_ID,
+            ))
         };
 
         let mut p_node_id = last_node_id;
@@ -256,7 +256,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn bfs_along_from_root<
         TN: TrieNodeAlike<InnerType = T> + Sized,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -268,7 +268,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn bfs_along<
         TN: TrieNodeAlike<InnerType = T> + Sized,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -308,7 +308,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn dfs_along_from_root<
         TN: TrieNodeAlike<InnerType = T> + Clone,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -320,7 +320,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn dfs_along<
         TN: TrieNodeAlike<InnerType = T> + Clone,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -356,84 +356,6 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         })
     }
 }
-
-impl<'s, T: Ord + Clone> State<'s, T> {
-    pub fn is_nil(&self) -> bool {
-        self.node_id == SAM_NIL_NODE_ID
-    }
-
-    pub fn is_root(&self) -> bool {
-        self.node_id == SAM_ROOT_NODE_ID
-    }
-
-    pub fn is_accepting(&self) -> bool {
-        self.get_node()
-            .map(|node| node.is_accepting())
-            .unwrap_or(false)
-    }
-
-    pub fn get_node(&self) -> Option<&'_ Node<T>> {
-        self.sam.node_pool.get(self.node_id)
-    }
-
-    pub fn goto_suffix_parent(&mut self) {
-        if let Some(node) = self.get_node() {
-            self.node_id = node.link;
-        } else {
-            self.node_id = SAM_NIL_NODE_ID;
-        }
-    }
-
-    pub fn goto(&mut self, t: &T) {
-        self.node_id =
-            if let Some(next_node_id) = self.get_node().and_then(|node| node.trans.get(t)) {
-                *next_node_id
-            } else {
-                SAM_NIL_NODE_ID
-            }
-    }
-
-    pub fn feed_ref<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
-        self.feed_ref_iter(seq.into_iter())
-    }
-
-    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(mut self, iter: Iter) -> Self {
-        for t in iter {
-            if self.is_nil() {
-                break;
-            }
-            self.goto(t)
-        }
-        self
-    }
-
-    pub fn feed<Seq: IntoIterator<Item = T>>(self, seq: Seq) -> Self {
-        self.feed_iter(seq.into_iter())
-    }
-
-    pub fn feed_iter<Iter: Iterator<Item = T>>(mut self, iter: Iter) -> Self {
-        for t in iter {
-            if self.is_nil() {
-                break;
-            }
-            self.goto(&t)
-        }
-        self
-    }
-}
-
-impl<'s> State<'s, u8> {
-    pub fn feed_bytes(self, seq: &'s str) -> Self {
-        self.feed_ref(seq.as_bytes())
-    }
-}
-
-impl<'s> State<'s, char> {
-    pub fn feed_chars(self, seq: &'s str) -> Self {
-        self.feed(seq.chars())
-    }
-}
-
 pub struct TopoOrderStateIter<'s, T: Ord + Clone> {
     sam: &'s GeneralSAM<T>,
     head: usize,
@@ -441,13 +363,13 @@ pub struct TopoOrderStateIter<'s, T: Ord + Clone> {
 }
 
 impl<'s, T: Ord + Clone> Iterator for TopoOrderStateIter<'s, T> {
-    type Item = State<'s, T>;
+    type Item = GeneralSAMState<'s, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.head >= self.sam.topo_order.len() {
             return None;
         }
-        let res = State {
+        let res = GeneralSAMState {
             sam: self.sam,
             node_id: self.sam.topo_order[self.head],
         };
@@ -455,13 +377,14 @@ impl<'s, T: Ord + Clone> Iterator for TopoOrderStateIter<'s, T> {
         Some(res)
     }
 }
+
 impl<'s, T: Ord + Clone> DoubleEndedIterator for TopoOrderStateIter<'s, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.rear == 0 {
             return None;
         }
         self.rear -= 1;
-        let res = State {
+        let res = GeneralSAMState {
             sam: self.sam,
             node_id: self.sam.topo_order[self.rear],
         };
