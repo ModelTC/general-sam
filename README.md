@@ -1,18 +1,38 @@
 # general-sam
 
-![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational?style=flat-square)
+[![Crates.io](https://img.shields.io/crates/v/general-sam.svg)](https://crates.io/crates/general-sam)
+[![Docs.rs](https://img.shields.io/docsrs/general-sam.svg)](https://docs.rs/general-sam)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-informational.svg)](#license)
+[![Build status](https://github.com/ModelTC/general-sam/actions/workflows/ci.yml/badge.svg)](https://github.com/ModelTC/general-sam/actions)
 
 A general suffix automaton implementation in Rust.
 
 Python bindings and some utilities are also available.
 Please check out [`general-sam-py`](https://github.com/ModelTC/general-sam-py).
 
-|         [![the suffix automaton of abcbc][sam-of-abcbc]][sam-oi-wiki]          |
-| :----------------------------------------------------------------------------: |
-| The suffix automaton of abcbc, image from [后缀自动机 - OI Wiki][sam-oi-wiki]. |
+```mermaid
+flowchart LR
+  init((ε))
+  a((a))
+  b((b))
+  ab((ab))
+  bc(((bc)))
+  abc((abc))
+  abcb((abcb))
+  abcbc(((abcbc)))
 
-[sam-of-abcbc]: https://oi-wiki.org/string/images/SAM/SA_suffix_links.svg
-[sam-oi-wiki]: https://oi-wiki.org/string/sam/
+  init -- a --> a
+  init -- b --> b
+  a -- b --> ab
+  b -- c --> bc
+  init -- c --> bc
+  ab -- c --> abc
+  bc -- b --> abcb
+  abc -- b --> abcb
+  abcb -- c --> abcbc
+```
+
+> The suffix automaton of abcbc.
 
 ## Examples
 
@@ -22,7 +42,10 @@ use general_sam::sam::GeneralSAM;
 let sam = GeneralSAM::construct_from_bytes("abcbc");
 // => GeneralSAM<u8>
 
+// "cbc" is a suffix.
 assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
+
+// "bcb" isn't a suffix.
 assert!(!sam.get_root_state().feed_bytes("bcb").is_accepting());
 ```
 
@@ -33,12 +56,20 @@ let sam = GeneralSAM::construct_from_chars("abcbc".chars());
 // => GeneralSAM<char>
 
 let state = sam.get_root_state();
+
+// "b" is not a suffix but a substring.
 let state = state.feed_chars("b");
 assert!(!state.is_accepting());
+
+// "bc" is a suffix.
 let state = state.feed_chars("c");
 assert!(state.is_accepting());
+
+// "bcbc" is also a suffix.
 let state = state.feed_chars("bc");
 assert!(state.is_accepting());
+
+// "bcbcbc" is not a substring.
 let state = state.feed_chars("bc");
 assert!(!state.is_accepting() && state.is_nil());
 ```
@@ -75,7 +106,7 @@ assert!(sam.get_root_state().feed_chars("bye").is_nil());
 
 ## License
 
-- &copy; 2023 Chielo Newctle \<ChieloNewctle@gmail.com\>
+- &copy; 2023 Chielo Newctle \<[ChieloNewctle@gmail.com](mailto:ChieloNewctle@gmail.com)\>
 - &copy; 2023 ModelTC Team
 
 This project is licensed under either of
