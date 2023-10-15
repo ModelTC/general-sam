@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::{
+    collections::{BTreeMap, VecDeque},
+    convert::Infallible,
+};
 
 use crate::trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
 
@@ -135,13 +138,24 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         TN::InnerType: Into<T>,
     {
         let mut queue = VecDeque::new();
-        queue.push_back((SAM_ROOT_NODE_ID, node));
-        while let Some((last_node_id, tn)) = queue.pop_front() {
-            tn.next_states().for_each(|(key, next_tn)| {
-                let new_node_id = self.insert_node_trans(last_node_id, key, next_tn.is_accepting());
-                queue.push_back((new_node_id, next_tn));
-            });
-        }
+        let mut last_node_id = SAM_ROOT_NODE_ID;
+        node.bfs_travel(|event| -> Result<(), Infallible> {
+            match event {
+                TravelEvent::Push(_, None) => {
+                    queue.push_back(SAM_ROOT_NODE_ID);
+                }
+                TravelEvent::Pop(_) => {
+                    last_node_id = queue.pop_front().unwrap();
+                }
+                TravelEvent::Push(tn, Some(key)) => {
+                    let new_node_id =
+                        self.insert_node_trans(last_node_id, key, tn.is_accepting());
+                    queue.push_back(new_node_id);
+                }
+            };
+            Ok(())
+        })
+        .unwrap();
     }
 
     fn topo_sort(&mut self) {
@@ -242,7 +256,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn bfs_along_from_root<
         TN: TrieNodeAlike<InnerType = T> + Sized,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), &TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -254,7 +268,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn bfs_along<
         TN: TrieNodeAlike<InnerType = T> + Sized,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), &TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -269,7 +283,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
                 let next_node_id = self
                     .node_pool
                     .get(cur_node_id)
-                    .and_then(|x| x.trans.get(key).copied())
+                    .and_then(|x| x.trans.get(&key).copied())
                     .unwrap_or(SAM_NIL_NODE_ID);
                 callback(TravelEvent::Push(
                     (self.get_state(next_node_id), tn),
@@ -294,7 +308,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn dfs_along_from_root<
         TN: TrieNodeAlike<InnerType = T> + Clone,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), &TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -306,7 +320,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn dfs_along<
         TN: TrieNodeAlike<InnerType = T> + Clone,
         E,
-        F: FnMut(TravelEvent<(State<'_, T>, &TN), &TN::InnerType>) -> Result<(), E>,
+        F: FnMut(TravelEvent<(State<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
     >(
         &self,
         trie_node: TN,
@@ -320,7 +334,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
                 let next_node_id = self
                     .node_pool
                     .get(*stack.last().unwrap())
-                    .and_then(|x| x.trans.get(key).copied())
+                    .and_then(|x| x.trans.get(&key).copied())
                     .unwrap_or(SAM_NIL_NODE_ID);
                 callback(TravelEvent::Push(
                     (self.get_state(next_node_id), tn),
