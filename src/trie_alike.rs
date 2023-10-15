@@ -75,7 +75,7 @@ impl<Iter: Iterator> From<Iter> for IterAsChain<Iter> {
 
 impl<Iter: Iterator> TrieNodeAlike for IterAsChain<Iter> {
     type InnerType = Iter::Item;
-    type NextStateIter = IterAsChainDummyNextState<Iter>;
+    type NextStateIter = IterAsChainNextStateIter<Iter>;
 
     fn is_accepting(&self) -> bool {
         self.val.is_none()
@@ -86,11 +86,11 @@ impl<Iter: Iterator> TrieNodeAlike for IterAsChain<Iter> {
     }
 }
 
-pub struct IterAsChainDummyNextState<Iter: Iterator> {
+pub struct IterAsChainNextStateIter<Iter: Iterator> {
     state: Option<IterAsChain<Iter>>,
 }
 
-impl<Iter: Iterator> Iterator for IterAsChainDummyNextState<Iter> {
+impl<Iter: Iterator> Iterator for IterAsChainNextStateIter<Iter> {
     type Item = (Iter::Item, IterAsChain<Iter>);
 
     fn next(&mut self) -> Option<Self::Item> {
