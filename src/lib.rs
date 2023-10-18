@@ -1,11 +1,28 @@
 //! This crate provides an implementation of a general suffix automaton.
 //!
-//! |         [![the suffix automaton of abcbc][sam-of-abcbc]][sam-oi-wiki]          |
-//! | :----------------------------------------------------------------------------: |
-//! | The suffix automaton of abcbc, image from [后缀自动机 - OI Wiki][sam-oi-wiki]. |
+//! ```mermaid
+//! flowchart LR
+//!   init((ε))
+//!   a((a))
+//!   b((b))
+//!   ab((ab))
+//!   bc(((bc)))
+//!   abc((abc))
+//!   abcb((abcb))
+//!   abcbc(((abcbc)))
 //!
-//! [sam-of-abcbc]: https://oi-wiki.org/string/images/SAM/SA_suffix_links.svg
-//! [sam-oi-wiki]: https://oi-wiki.org/string/sam/
+//!   init -- a --> a
+//!   init -- b --> b
+//!   a -- b --> ab
+//!   b -- c --> bc
+//!   init -- c --> bc
+//!   ab -- c --> abc
+//!   bc -- b --> abcb
+//!   abc -- b --> abcb
+//!   abcb -- c --> abcbc
+//! ```
+//!
+//! > The suffix automaton of abcbc.
 //!
 //! # Examples
 //!
@@ -15,7 +32,10 @@
 //! let sam = GeneralSAM::construct_from_bytes("abcbc");
 //! // => GeneralSAM<u8>
 //!
+//! // "cbc" is a suffix of "abcbc"
 //! assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
+//!
+//! // "bcb" is not a suffix of "abcbc"
 //! assert!(!sam.get_root_state().feed_bytes("bcb").is_accepting());
 //! ```
 //!
@@ -26,12 +46,20 @@
 //! // => GeneralSAM<char>
 //!
 //! let state = sam.get_root_state();
+//!
+//! // "b" is not a suffix but at least a substring of "abcbc"
 //! let state = state.feed_chars("b");
 //! assert!(!state.is_accepting());
+//!
+//! // "bc" is a suffix of "abcbc"
 //! let state = state.feed_chars("c");
 //! assert!(state.is_accepting());
+//!
+//! // "bcbc" is a suffix of "abcbc"
 //! let state = state.feed_chars("bc");
 //! assert!(state.is_accepting());
+//!
+//! // "bcbcbc" is not a substring, much less a suffix of "abcbc"
 //! let state = state.feed_chars("bc");
 //! assert!(!state.is_accepting() && state.is_nil());
 //! ```
