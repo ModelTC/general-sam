@@ -45,7 +45,10 @@ impl<T: Ord + Clone> TrieNode<T> {
 impl<T: Ord + Clone> Default for Trie<T> {
     fn default() -> Self {
         Self {
-            node_pool: vec![TrieNode::new(TRIE_NIL_NODE_ID), TrieNode::new(TRIE_NIL_NODE_ID)],
+            node_pool: vec![
+                TrieNode::new(TRIE_NIL_NODE_ID),
+                TrieNode::new(TRIE_NIL_NODE_ID),
+            ],
         }
     }
 }
@@ -86,7 +89,10 @@ impl<T: Ord + Clone> Trie<T> {
         node_id
     }
 
-    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s T>>(&'s mut self, iter: Iter) -> TrieNodeID {
+    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s T>>(
+        &'s mut self,
+        iter: Iter,
+    ) -> TrieNodeID {
         self.insert_iter(iter.cloned())
     }
 
