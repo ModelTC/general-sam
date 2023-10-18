@@ -37,8 +37,8 @@ impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
             .unwrap_or(false)
     }
 
-    pub fn get_node(&self) -> Option<&'_ GeneralSAMNode<T>> {
-        self.sam.node_pool.get(self.node_id)
+    pub fn get_node(&self) -> Option<&GeneralSAMNode<T>> {
+        self.sam.get_node(self.node_id)
     }
 
     pub fn goto_suffix_parent(&mut self) {
