@@ -91,6 +91,14 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool.len()
     }
 
+    pub fn get_root_node(&self) -> &GeneralSAMNode<T> {
+        self.get_node(SAM_ROOT_NODE_ID).unwrap()
+    }
+
+    pub fn get_node(&self, node_id: GeneralSAMNodeID) -> Option<&GeneralSAMNode<T>> {
+        self.node_pool.get(node_id)
+    }
+
     pub fn get_root_state(&self) -> GeneralSAMState<T> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
