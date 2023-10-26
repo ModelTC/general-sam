@@ -12,8 +12,9 @@ authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
 exclude = ["release-plz.toml", "cliff.tolm"]
 
 [package.metadata.docs.rs]
+# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
 all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+rustdoc-args = ["--cfg", "doc_cfg"]
 
 [lib]
 name = "general_sam"
