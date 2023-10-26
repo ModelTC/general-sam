@@ -8,6 +8,10 @@ on:
   push:
     branches:
       - main
+  workflow_run:
+    workflows: [Cargo Build & Test]
+    types:
+      - completed
 
 jobs:
   release-plz:
