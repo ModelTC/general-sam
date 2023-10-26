@@ -1,3 +1,5 @@
+//! A simple implementation of tries with support of `TrieNodeAlike`.
+
 use std::collections::{btree_map, BTreeMap};
 
 use crate::trie_alike::TrieNodeAlike;

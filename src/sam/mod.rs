@@ -1,3 +1,5 @@
+//! A general suffix automaton implementation.
+
 mod state;
 pub use state::GeneralSAMState;
 
@@ -20,6 +22,7 @@ pub struct GeneralSAMNode<T: Ord + Clone> {
     link: GeneralSAMNodeID,
 }
 
+/// A general suffix automaton.
 #[derive(Debug, Clone)]
 pub struct GeneralSAM<T: Ord + Clone> {
     node_pool: Vec<GeneralSAMNode<T>>,
