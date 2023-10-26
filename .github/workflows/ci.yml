@@ -10,7 +10,7 @@ env:
 
 jobs:
   build_and_test:
-    name: Rust project - latest
+    name: Build & Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,8 +20,20 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose
       - run: cargo test --verbose
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
+
+  build_docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: rustup update nightly && rustup default nightly
+      - run: RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
