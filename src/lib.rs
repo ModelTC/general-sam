@@ -65,6 +65,7 @@
 //! ```
 //!
 //! ```rust
+//! # #[cfg(feature = "trie")] {
 //! use general_sam::{sam::GeneralSAM, trie::Trie};
 //!
 //! let mut trie = Trie::default();
@@ -82,6 +83,7 @@
 //!
 //! assert!(!sam.get_root_state().feed_chars("bye").is_accepting());
 //! assert!(sam.get_root_state().feed_chars("bye").is_nil());
+//! # }
 //! ```
 //!
 //! # References
