@@ -99,16 +99,19 @@
 pub mod sam;
 pub mod trie_alike;
 
-#[cfg(feature = "trie")]
-pub mod trie;
-
-pub use sam::{
-    GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
-    SAM_ROOT_NODE_ID,
+pub use {
+    sam::{
+        GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
+        SAM_ROOT_NODE_ID,
+    },
+    trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike},
 };
-pub use trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
 
 #[cfg(feature = "trie")]
+#[cfg_attr(docsrs, doc(cfg(feature = "trie")))]
+pub mod trie;
+#[cfg(feature = "trie")]
+#[cfg_attr(docsrs, doc(cfg(feature = "trie")))]
 pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
 
 #[cfg(test)]
