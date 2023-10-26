@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use crate::trie_alike::{TravelEvent, TrieNodeAlike};
 
 use super::{GeneralSAM, GeneralSAMNode, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
@@ -16,13 +14,13 @@ impl<'s> GeneralSAMState<'s, u8> {
     }
 }
 
-impl<'s> GeneralSAMState<'s, char> {
-    pub fn feed_chars(self, seq: &'s str) -> Self {
+impl GeneralSAMState<'_, char> {
+    pub fn feed_chars(self, seq: &str) -> Self {
         self.feed(seq.chars())
     }
 }
 
-impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
+impl<T: Ord + Clone> GeneralSAMState<'_, T> {
     pub fn is_nil(&self) -> bool {
         self.node_id == SAM_NIL_NODE_ID
     }
@@ -58,20 +56,6 @@ impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
             }
     }
 
-    pub fn feed_ref<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
-        self.feed_ref_iter(seq.into_iter())
-    }
-
-    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(mut self, iter: Iter) -> Self {
-        for t in iter {
-            if self.is_nil() {
-                break;
-            }
-            self.goto(t)
-        }
-        self
-    }
-
     pub fn feed<Seq: IntoIterator<Item = T>>(self, seq: Seq) -> Self {
         self.feed_iter(seq.into_iter())
     }
@@ -85,89 +69,85 @@ impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
         }
         self
     }
+}
 
-    pub fn bfs_along<
-        TN: TrieNodeAlike<InnerType = T> + Sized,
-        E,
-        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
+    pub fn feed_ref<Seq: IntoIterator<Item = &'s T>>(self, seq: Seq) -> Self {
+        self.feed_ref_iter(seq.into_iter())
+    }
+
+    pub fn feed_ref_iter<Iter: Iterator<Item = &'s T>>(mut self, iter: Iter) -> Self {
+        for t in iter {
+            if self.is_nil() {
+                break;
+            }
+            self.goto(t)
+        }
+        self
+    }
+}
+
+impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
+    fn wrap_travel_along_callback<
+        TN: TrieNodeAlike<InnerType = T>,
+        ExtraType,
+        ErrorType,
+        F: 's
+            + FnMut(
+                TravelEvent<(&GeneralSAMState<T>, &TN), ExtraType, TN::InnerType>,
+            ) -> Result<ExtraType, ErrorType>,
     >(
-        &self,
-        trie_node: TN,
+        &'s self,
         mut callback: F,
-    ) -> Result<(), E> {
-        let mut queue = VecDeque::new();
-        let mut cur_node_id = self.node_id;
-
-        trie_node.bfs_travel(|event| match event {
-            TravelEvent::Push(tn, Some(key)) => {
-                let next_node_id = self
-                    .sam
-                    .node_pool
-                    .get(cur_node_id)
-                    .and_then(|x| x.trans.get(&key).copied())
-                    .unwrap_or(SAM_NIL_NODE_ID);
-                callback(TravelEvent::Push(
-                    (self.sam.get_state(next_node_id), tn),
-                    Some(key),
-                ))?;
-                queue.push_back(next_node_id);
-                Ok(())
+    ) -> impl FnMut(
+        TravelEvent<&TN, (GeneralSAMState<'s, T>, ExtraType), TN::InnerType>,
+    ) -> Result<(GeneralSAMState<'s, T>, ExtraType), ErrorType> {
+        move |event| match event {
+            TravelEvent::PushRoot(trie_root) => {
+                let res = callback(TravelEvent::PushRoot((self, trie_root)))?;
+                Ok((self.clone(), res))
             }
-            TravelEvent::Push(tn, None) => {
-                callback(TravelEvent::Push(
-                    (self.sam.get_state(self.node_id), tn),
-                    None,
-                ))?;
-                queue.push_back(self.node_id);
-                Ok(())
+            TravelEvent::Push(cur_tn, (cur_state, cur_extra), key) => {
+                let mut next_state = cur_state.clone();
+                next_state.goto(&key);
+                let next_extra =
+                    callback(TravelEvent::Push((&next_state, &cur_tn), cur_extra, key))?;
+                Ok((next_state, next_extra))
             }
-            TravelEvent::Pop(tn) => {
-                cur_node_id = queue.pop_front().unwrap();
-                callback(TravelEvent::Pop((self.sam.get_state(cur_node_id), tn)))?;
-                Ok(())
+            TravelEvent::Pop(cur_tn, (cur_state, extra)) => {
+                let res = callback(TravelEvent::Pop((&cur_state, cur_tn), extra))?;
+                Ok((cur_state, res))
             }
-        })
+        }
     }
 
     pub fn dfs_along<
         TN: TrieNodeAlike<InnerType = T> + Clone,
-        E,
-        F: FnMut(TravelEvent<(GeneralSAMState<'_, T>, &TN), TN::InnerType>) -> Result<(), E>,
+        ExtraType,
+        ErrorType,
+        F: FnMut(
+            TravelEvent<(&GeneralSAMState<'_, T>, &TN), ErrorType, TN::InnerType>,
+        ) -> Result<ErrorType, ExtraType>,
     >(
         &self,
         trie_node: TN,
-        mut callback: F,
-    ) -> Result<(), E> {
-        let mut stack: Vec<usize> = Vec::new();
+        callback: F,
+    ) -> Result<(), ExtraType> {
+        trie_node.dfs_travel(self.wrap_travel_along_callback(callback))
+    }
 
-        trie_node.dfs_travel(|event| match event {
-            TravelEvent::Push(tn, Some(key)) => {
-                let next_node_id = self
-                    .sam
-                    .node_pool
-                    .get(*stack.last().unwrap())
-                    .and_then(|x| x.trans.get(&key).copied())
-                    .unwrap_or(SAM_NIL_NODE_ID);
-                callback(TravelEvent::Push(
-                    (self.sam.get_state(next_node_id), tn),
-                    Some(key),
-                ))?;
-                stack.push(next_node_id);
-                Ok(())
-            }
-            TravelEvent::Push(tn, None) => {
-                callback(TravelEvent::Push(
-                    (self.sam.get_state(self.node_id), tn),
-                    None,
-                ))?;
-                stack.push(self.node_id);
-                Ok(())
-            }
-            TravelEvent::Pop(tn) => {
-                let node_id = stack.pop().unwrap();
-                callback(TravelEvent::Pop((self.sam.get_state(node_id), tn)))?;
-                Ok(())
-            }
-        })
+    pub fn bfs_along<
+        TN: TrieNodeAlike<InnerType = T> + Clone,
+        ExtraType,
+        ErrorType,
+        F: FnMut(
+            TravelEvent<(&GeneralSAMState<'_, T>, &TN), ErrorType, TN::InnerType>,
+        ) -> Result<ErrorType, ExtraType>,
+    >(
+        &self,
+        trie_node: TN,
+        callback: F,
+    ) -> Result<(), ExtraType> {
+        trie_node.bfs_travel(self.wrap_travel_along_callback(callback))
     }
 }

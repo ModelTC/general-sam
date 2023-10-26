@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
 
-pub enum TravelEvent<NodeType, KeyType> {
-    Push(NodeType, Option<KeyType>),
-    Pop(NodeType),
+pub enum TravelEvent<'s, NodeType, ExtraType, KeyType> {
+    PushRoot(NodeType),
+    Push(NodeType, &'s ExtraType, KeyType),
+    Pop(NodeType, ExtraType),
 }
 
 /// This trait provides the essential interfaces required by `GeneralSAM`
@@ -13,45 +14,59 @@ pub trait TrieNodeAlike {
     fn is_accepting(&self) -> bool;
     fn next_states(self) -> Self::NextStateIter;
 
-    fn bfs_travel<E, F: FnMut(TravelEvent<&Self, Self::InnerType>) -> Result<(), E>>(
+    fn bfs_travel<
+        ErrorType,
+        ExtraType,
+        F: FnMut(TravelEvent<&Self, ExtraType, Self::InnerType>) -> Result<ExtraType, ErrorType>,
+    >(
         self,
         mut callback: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ErrorType>
     where
         Self: Sized,
     {
         let mut queue = VecDeque::new();
-        callback(TravelEvent::Push(&self, None))?;
-        queue.push_back(self);
-        while let Some(state) = queue.pop_front() {
-            callback(TravelEvent::Pop(&state))?;
+
+        let extra = callback(TravelEvent::PushRoot(&self))?;
+        queue.push_back((self, extra));
+
+        while let Some((state, cur_extra)) = queue.pop_front() {
+            let cur_extra = callback(TravelEvent::Pop(&state, cur_extra))?;
+
             for (t, v) in state.next_states() {
-                callback(TravelEvent::Push(&v, Some(t)))?;
-                queue.push_back(v);
+                let next_extra = callback(TravelEvent::Push(&v, &cur_extra, t))?;
+                queue.push_back((v, next_extra));
             }
         }
         Ok(())
     }
 
-    fn dfs_travel<E, F: FnMut(TravelEvent<&Self, Self::InnerType>) -> Result<(), E>>(
+    fn dfs_travel<
+        ErrorType,
+        ExtraType,
+        F: FnMut(TravelEvent<&Self, ExtraType, Self::InnerType>) -> Result<ExtraType, ErrorType>,
+    >(
         self,
         mut callback: F,
-    ) -> Result<(), E>
+    ) -> Result<(), ErrorType>
     where
         Self: Clone,
     {
         let mut stack = Vec::new();
 
-        callback(TravelEvent::Push(&self, None))?;
-        stack.push((self.clone(), self.next_states()));
+        let extra = callback(TravelEvent::PushRoot(&self))?;
+        stack.push((self.clone(), self.next_states(), extra));
 
-        while let Some((ref cur, ref mut iter)) = stack.last_mut() {
-            if let Some((key, next_state)) = iter.next() {
-                callback(TravelEvent::Push(&next_state, Some(key)))?;
-                stack.push((next_state.clone(), next_state.next_states()));
-            } else {
-                callback(TravelEvent::Pop(cur))?;
-                stack.pop();
+        while !stack.is_empty() {
+            if let Some((_, iter, extra)) = stack.last_mut() {
+                if let Some((key, next_state)) = iter.next() {
+                    let new_extra = callback(TravelEvent::Push(&next_state, extra, key))?;
+                    stack.push((next_state.clone(), next_state.next_states(), new_extra));
+                    continue;
+                }
+            }
+            if let Some((cur, _, extra)) = stack.pop() {
+                callback(TravelEvent::Pop(&cur, extra))?;
             }
         }
         Ok(())

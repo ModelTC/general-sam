@@ -1,12 +1,12 @@
 mod state;
 pub use state::GeneralSAMState;
 
-use std::{
-    collections::{BTreeMap, VecDeque},
-    convert::Infallible,
-};
+use std::{collections::BTreeMap, convert::Infallible};
 
-use crate::trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
+use crate::{
+    trie_alike::{IterAsChain, TrieNodeAlike},
+    TravelEvent,
+};
 
 pub type GeneralSAMNodeID = usize;
 pub const SAM_NIL_NODE_ID: GeneralSAMNodeID = 0;
@@ -142,22 +142,14 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     where
         TN::InnerType: Into<T>,
     {
-        let mut queue = VecDeque::new();
-        let mut last_node_id = SAM_ROOT_NODE_ID;
-        node.bfs_travel(|event| -> Result<(), Infallible> {
+        node.bfs_travel(|event| -> Result<GeneralSAMNodeID, Infallible> {
             match event {
-                TravelEvent::Push(_, None) => {
-                    queue.push_back(SAM_ROOT_NODE_ID);
+                TravelEvent::PushRoot(_) => Ok(SAM_ROOT_NODE_ID),
+                TravelEvent::Push(cur_tn, cur_node_id, key) => {
+                    Ok(self.insert_node_trans(*cur_node_id, key, cur_tn.is_accepting()))
                 }
-                TravelEvent::Pop(_) => {
-                    last_node_id = queue.pop_front().unwrap();
-                }
-                TravelEvent::Push(tn, Some(key)) => {
-                    let new_node_id = self.insert_node_trans(last_node_id, key, tn.is_accepting());
-                    queue.push_back(new_node_id);
-                }
-            };
-            Ok(())
+                TravelEvent::Pop(_, cur_node_id) => Ok(cur_node_id),
+            }
         })
         .unwrap();
     }

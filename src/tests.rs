@@ -1,10 +1,4 @@
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    rngs::StdRng,
-    Rng, SeedableRng,
-};
-
-use crate::{sam::GeneralSAM, trie::Trie, SAM_ROOT_NODE_ID};
+use crate::sam::GeneralSAM;
 
 #[test]
 fn test_example_from_chars() {
@@ -40,8 +34,11 @@ fn test_example_from_bytes() {
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
 }
 
+#[cfg(feature = "trie")]
 #[test]
 fn test_example_from_trie() {
+    use crate::trie::Trie;
+
     let mut trie = Trie::default();
 
     trie.insert_iter("hello".chars());
@@ -120,7 +117,10 @@ fn test_chinese_chars() {
     println!("state \"你好\": {:?}", state.node_id);
 }
 
+#[cfg(feature = "trie")]
 fn test_trie_suffix(vocab: &[&str]) {
+    use crate::trie::Trie;
+
     let mut trie = Trie::default();
     vocab.iter().for_each(|word| {
         trie.insert_iter(word.chars());
@@ -160,20 +160,32 @@ fn test_trie_suffix(vocab: &[&str]) {
     });
 }
 
+#[cfg(feature = "trie")]
 #[test]
 fn test_chiense_trie_suffix() {
     let vocab = ["歌曲", "聆听歌曲", "播放歌曲", "歌词", "查看歌词"];
     test_trie_suffix(&vocab);
 }
 
+#[cfg(feature = "trie")]
 #[test]
 fn test_simple_trie_suffix() {
     let vocab = ["ac", "bb", "b", "cc", "aabb", "a", "ba", "c", "aa"];
     test_trie_suffix(&vocab);
 }
 
+#[cfg(feature = "trie")]
 #[test]
 fn test_topo_and_suf_len_sorted_order() {
+    use rand::{
+        distributions::{Alphanumeric, DistString},
+        rngs::StdRng,
+        Rng, SeedableRng,
+    };
+
+    use crate::trie::Trie;
+    use crate::SAM_ROOT_NODE_ID;
+
     let mut rng = StdRng::seed_from_u64(1134759173975);
     for _ in 0..10000 {
         let mut trie = Trie::default();

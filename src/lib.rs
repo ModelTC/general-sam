@@ -65,6 +65,7 @@
 //! ```
 //!
 //! ```rust
+//! # #[cfg(feature = "trie")] {
 //! use general_sam::{sam::GeneralSAM, trie::Trie};
 //!
 //! let mut trie = Trie::default();
@@ -82,6 +83,7 @@
 //!
 //! assert!(!sam.get_root_state().feed_chars("bye").is_accepting());
 //! assert!(sam.get_root_state().feed_chars("bye").is_nil());
+//! # }
 //! ```
 //!
 //! # References
@@ -95,15 +97,19 @@
 //! [general-sam-oi-wiki]: https://oi-wiki.org/string/general-sam/
 
 pub mod sam;
-pub mod trie;
 pub mod trie_alike;
+
+#[cfg(feature = "trie")]
+pub mod trie;
 
 pub use sam::{
     GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
     SAM_ROOT_NODE_ID,
 };
-pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
 pub use trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
+
+#[cfg(feature = "trie")]
+pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
 
 #[cfg(test)]
 mod tests;
