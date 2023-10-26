@@ -17,3 +17,7 @@ name = "general_sam"
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[features]
+trie = []
+all = ["trie"]

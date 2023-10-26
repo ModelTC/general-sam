@@ -95,15 +95,19 @@
 //! [general-sam-oi-wiki]: https://oi-wiki.org/string/general-sam/
 
 pub mod sam;
-pub mod trie;
 pub mod trie_alike;
+
+#[cfg(feature = "trie")]
+pub mod trie;
 
 pub use sam::{
     GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
     SAM_ROOT_NODE_ID,
 };
-pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
 pub use trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
+
+#[cfg(feature = "trie")]
+pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
 
 #[cfg(test)]
 mod tests;
