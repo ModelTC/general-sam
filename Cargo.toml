@@ -9,7 +9,7 @@ homepage = "https://github.com/ModelTC/general-sam"
 documentation = "https://docs.rs/general-sam"
 readme = "README.md"
 authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
-exclude = ["release-plz.toml", "cliff.tolm"]
+exclude = ["release-plz.toml"]
 
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
