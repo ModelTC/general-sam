@@ -15,7 +15,6 @@ pub trait TreapNodeData: Clone {
     fn get_tag(&self) -> Option<Self::TagType>;
     fn reset_tag(&mut self);
     fn add_tag(&mut self, tag: Self::TagType) -> NeedSwap;
-
     fn update(&mut self, left: Option<&Self>, right: Option<&Self>);
 }
 
@@ -102,12 +101,14 @@ impl<DataType: TreapNodeData> Default for TreapTree<DataType> {
         Self(None)
     }
 }
+
 impl<DataType: TreapNodeData> Deref for TreapTree<DataType> {
     type Target = Option<Arc<TreapNode<DataType>>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
+
 impl<DataType: TreapNodeData> TreapTree<DataType> {
     pub fn new(data: DataType) -> Self {
         Self(Some(Arc::new(TreapNode::new(data))))
