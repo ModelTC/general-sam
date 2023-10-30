@@ -28,6 +28,7 @@ impl<Inner: RopeData> RopeTreapData<Inner> {
         }
     }
 }
+
 impl<Inner: RopeData> Deref for RopeTreapData<Inner> {
     type Target = Inner;
 
@@ -35,18 +36,22 @@ impl<Inner: RopeData> Deref for RopeTreapData<Inner> {
         &self.inner
     }
 }
+
 impl<Inner: RopeData> TreapNodeData for RopeTreapData<Inner> {
     type TagType = (bool, Option<Inner::TagType>);
+
     fn get_tag(&self) -> Option<Self::TagType> {
         match (self.rev_tag, self.inner.get_tag()) {
             (false, None) => None,
             other => Some(other),
         }
     }
+
     fn reset_tag(&mut self) {
         self.rev_tag = false;
         self.inner.reset_tag();
     }
+
     fn add_tag(&mut self, tag: Self::TagType) -> NeedSwap {
         self.rev_tag ^= tag.0;
         if let Some(inner_tag) = tag.1 {
@@ -55,6 +60,7 @@ impl<Inner: RopeData> TreapNodeData for RopeTreapData<Inner> {
             tag.0
         }
     }
+
     fn update(&mut self, left: Option<&Self>, right: Option<&Self>) {
         self.inner
             .update(left.map(|x| &x.inner), right.map(|x| &x.inner));
@@ -67,18 +73,19 @@ pub trait RopeBase: Sized + Clone {
 
     #[must_use]
     fn new(data: Self::InnerRopeData) -> Self;
-    fn is_empty(&self) -> bool;
-    fn len(&self) -> usize;
-    fn for_each<F: FnMut(Self::InnerRopeData)>(&self, f: F);
     #[must_use]
     fn reverse(&self) -> Self;
     #[must_use]
     fn split(&self, num: usize) -> (Self, Self);
     #[must_use]
     fn merge(&self, other: &Self) -> Self;
-    fn root_data_ref(&self) -> Option<&Self::InnerRopeData>;
     #[must_use]
     fn add_tag(&self, tag: <Self::InnerRopeData as RopeData>::TagType) -> Self;
+
+    fn root_data_ref(&self) -> Option<&Self::InnerRopeData>;
+    fn is_empty(&self) -> bool;
+    fn len(&self) -> usize;
+    fn for_each<F: FnMut(Self::InnerRopeData)>(&self, f: F);
 
     #[must_use]
     fn insert(&self, pos: usize, data: Self::InnerRopeData) -> Self {
@@ -207,6 +214,7 @@ impl<Inner: RopeData> From<TreapTree<RopeTreapData<Inner>>> for Rope<Inner> {
         Self(value)
     }
 }
+
 impl<Inner: RopeData> Deref for Rope<Inner> {
     type Target = TreapTree<RopeTreapData<Inner>>;
 
