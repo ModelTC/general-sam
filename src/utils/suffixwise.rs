@@ -91,23 +91,11 @@ pub struct SuffixInTrie<TN: TrieNodeAlike + Clone>
 where
     TN::InnerType: Ord + Clone,
 {
-    pub trie_node: Option<TN>,
-    pub len: usize,
+    pub trie_node: TN,
+    pub seq_len: usize,
 }
 
-impl<TN: TrieNodeAlike + Clone> Default for SuffixInTrie<TN>
-where
-    TN::InnerType: Ord + Clone,
-{
-    fn default() -> Self {
-        Self {
-            trie_node: None,
-            len: 0,
-        }
-    }
-}
-
-pub type SuffixInTrieData<TN> = SuffixwiseData<RopeUntaggedInner<SuffixInTrie<TN>>>;
+pub type SuffixInTrieData<TN> = SuffixwiseData<RopeUntaggedInner<Option<SuffixInTrie<TN>>>>;
 
 impl<TN: TrieNodeAlike + Clone> SuffixInTrieData<TN>
 where
@@ -120,8 +108,8 @@ where
                 crate::TravelEvent::Pop((sam_state, trie_state), len) => {
                     if trie_state.is_accepting() {
                         sam_to_data[sam_state.node_id].push_back(SuffixInTrie {
-                            trie_node: Some(trie_state.clone()),
-                            len,
+                            trie_node: trie_state.clone(),
+                            seq_len: len,
                         });
                     }
                     Ok(len)
@@ -134,7 +122,7 @@ where
         Self::build_from_sam(sam, |node_id| {
             sam_to_data[node_id]
                 .iter()
-                .map(|x| (x.len, x.clone().into()))
+                .map(|x| (x.seq_len, Some(x.clone()).into()))
         })
     }
 }
@@ -142,18 +130,27 @@ where
 #[cfg(feature = "trie")]
 #[test]
 fn test_suffix_in_trie_data() {
+    use std::collections::BTreeMap;
+
     use crate::trie::Trie;
-    let vocab = ["a", "ab", "b", "bc", "c", "d", "e", "f", "cd", "abcde"];
+
+    let vocab = ["a", "ab", "b", "bc", "c", "d", "e", "f", "cd", "abcde", "你好", "🧡"];
     let mut trie = Trie::default();
+    let mut id_to_word = BTreeMap::new();
     for word in vocab {
-        trie.insert_iter(word.chars());
+        id_to_word.insert(trie.insert_iter(word.chars()), word);
     }
+
     let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
     let data = SuffixInTrieData::build(&sam, trie.get_root_state());
     for i in data {
         let mut suffix_info = Vec::new();
-        i.data
-            .for_each(|x| suffix_info.push((x.trie_node.as_ref().map(|n| n.node_id), x.len)));
+        i.data.for_each(|x| {
+            suffix_info.push(x.into_inner().map(|x| {
+                let SuffixInTrie { trie_node, seq_len: chars_count } = x;
+                (chars_count, id_to_word.get(&trie_node.node_id).unwrap())
+            }))
+        });
         dbg!(i.min_suf_len);
         dbg!(i.max_suf_len);
         dbg!(suffix_info);
