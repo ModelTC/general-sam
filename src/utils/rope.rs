@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{borrow::Cow, ops::Deref};
 
 use super::treap::{NeedSwap, SplitTo, TreapNodeData, TreapTree};
 
@@ -118,8 +118,14 @@ pub trait RopeBase: Sized + Clone {
     }
 }
 
-pub trait TreapBasedRopeBase: RopeBase {
-    fn new_from_rng<R: FnMut() -> usize>(data: Self::InnerRopeData, rng: R) -> Self;
+pub trait TreapBasedRopeBase:
+    RopeBase
+    + Deref<Target = TreapTree<RopeTreapData<Self::InnerRopeData>>>
+    + From<TreapTree<RopeTreapData<Self::InnerRopeData>>>
+{
+    fn new_from_rng<R: FnMut() -> usize>(data: Self::InnerRopeData, rng: R) -> Self {
+        TreapTree::new_from_rng(RopeTreapData::new(data), rng).into()
+    }
 
     fn insert_from_rng<R: FnMut() -> usize>(
         &self,
@@ -138,6 +144,21 @@ pub trait TreapBasedRopeBase: RopeBase {
     fn push_front_from_rng<R: FnMut() -> usize>(&self, data: Self::InnerRopeData, rng: R) -> Self {
         self.insert_from_rng(0, data, rng)
     }
+
+    fn query(&self, mut pos: usize) -> Option<Cow<RopeTreapData<Self::InnerRopeData>>> {
+        self.deref().query(|node| {
+            let left_size = node
+                .get_left()
+                .deref()
+                .as_ref()
+                .map_or(0, |left| left.data.num);
+            let res = pos.cmp(&left_size);
+            if pos > left_size {
+                pos -= left_size + 1;
+            }
+            res
+        })
+    }
 }
 
 impl<
@@ -147,9 +168,6 @@ impl<
             + Clone,
     > TreapBasedRopeBase for TreapBasedRope
 {
-    fn new_from_rng<R: FnMut() -> usize>(data: Self::InnerRopeData, rng: R) -> Self {
-        TreapTree::new_from_rng(RopeTreapData::new(data), rng).into()
-    }
 }
 impl<
         InnerRopeData: RopeData,
@@ -206,7 +224,7 @@ impl<
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Rope<Inner: RopeData>(TreapTree<RopeTreapData<Inner>>);
 
 impl<Inner: RopeData> From<TreapTree<RopeTreapData<Inner>>> for Rope<Inner> {
@@ -220,6 +238,12 @@ impl<Inner: RopeData> Deref for Rope<Inner> {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<Inner: RopeData> Default for Rope<Inner> {
+    fn default() -> Self {
+        Self(Default::default())
     }
 }
 
@@ -268,6 +292,10 @@ fn test_rope() {
     assert!(rope.get(1).is_some_and(|x| *x == 'a'));
     assert!(rope.get(2).is_some_and(|x| *x == 'c'));
     assert!(rope.get(3).is_none());
+    assert!(rope.query(0).is_some_and(|x| ***x == 'b'));
+    assert!(rope.query(1).is_some_and(|x| ***x == 'a'));
+    assert!(rope.query(2).is_some_and(|x| ***x == 'c'));
+    assert!(rope.query(3).is_none());
 
     let rope = rope.reverse();
     assert!(rope.get(0).is_some_and(|x| *x == 'c'));
