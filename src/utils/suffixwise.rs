@@ -85,23 +85,24 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
                 let parent = sam.get_node(parent_id).expect("invalid GeneralSAM");
 
                 node_data.min_suf_len = parent.max_suffix_len() + 1;
+
+                assert_eq!(
+                    node_data.data.len(),
+                    node_data.max_suf_len - node_data.min_suf_len + 1
+                );
+
+                for (len, data) in f_init(node_id) {
+                    assert!(len >= node_data.min_suf_len && len <= node_data.max_suf_len);
+                    let (left, right) = node_data.data.split(len - node_data.min_suf_len);
+                    let (_, right) = right.split(1);
+                    node_data.data = left.merge(&Rope::new(data)).merge(&right);
+                }
+
+                assert_eq!(
+                    node_data.data.len(),
+                    node_data.max_suf_len - node_data.min_suf_len + 1
+                );
             }
-
-            assert_eq!(
-                node_data.data.len(),
-                node_data.max_suf_len - node_data.min_suf_len + 1
-            );
-
-            for (len, data) in f_init(node_id) {
-                let (left, right) = node_data.data.split(len - node_data.min_suf_len);
-                let (_, right) = right.split(1);
-                node_data.data = left.merge(&Rope::new(data)).merge(&right);
-            }
-
-            assert_eq!(
-                node_data.data.len(),
-                node_data.max_suf_len - node_data.min_suf_len + 1
-            );
 
             node.get_trans().values().copied().for_each(|target_id| {
                 res[target_id].data = res[target_id].data.merge(&res[node_id].data)

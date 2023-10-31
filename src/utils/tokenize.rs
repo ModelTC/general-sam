@@ -54,8 +54,10 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
                     .get(*cur_len)
                     .expect("invalid state");
 
+                // TODO: optimize for unknown token:
+                //       find the lower bound position where the suffix is prefixed with a token
                 let (token_id, token_len) = inner_data.as_ref().map_or_else(
-                    || (unk_token_id, *cur_len),
+                    || (unk_token_id, 1),
                     |token_info| (&token_info.digested_trie_node, token_info.seq_len),
                 );
 
@@ -73,7 +75,7 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
                 pop_buffer(&mut cur_len, &mut cur_state, &mut res);
             }
             if !cur_state.has_trans(&key) {
-                cur_state = self.sam.get_root_state();
+                debug_assert!(cur_state.is_root());
                 push(&mut res, unk_token_id.clone(), 1);
                 continue;
             }

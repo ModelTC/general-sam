@@ -66,6 +66,12 @@ fn test_rope() {
 mod trie {
     use std::collections::BTreeMap;
 
+    use rand::{
+        distributions::{Alphanumeric, DistString},
+        rngs::StdRng,
+        Rng, SeedableRng,
+    };
+
     use crate::{
         utils::{
             rope::RopeBase,
@@ -160,7 +166,7 @@ mod trie {
         res
     }
 
-    fn case_tokenizer<T: Ord + Clone + std::fmt::Debug, Iter: Iterator<Item = T>>(
+    fn case_tokenizer<T: Ord + Clone, Iter: Iterator<Item = T>>(
         tokenizer: &GreedyTokenizer<T, usize>,
         trie: &Trie<T>,
         seq: Iter,
@@ -168,9 +174,7 @@ mod trie {
         let seq: Box<[_]> = seq.collect();
         let output = tokenizer.tokenize(seq.iter().cloned(), &trie.num_of_nodes());
         let expected = greedy_tokenize_with_trie(trie, seq.iter().cloned());
-        dbg!(&seq);
         output.iter().zip(expected.iter()).for_each(|(o, e)| {
-            dbg!(&o, &e);
             assert_eq!(*o, *e);
         });
     }
@@ -219,5 +223,71 @@ mod trie {
         case_tokenizer(&tokenizer, &trie, "Hi，你好吗？".bytes());
         case_tokenizer(&tokenizer, &trie, "🧡🧡🧡🧡🧡！".bytes());
         case_tokenizer(&tokenizer, &trie, "abc".bytes());
+    }
+
+    fn case_tokenizer_vocab<T: Ord + Clone, F: FnMut(String) -> Vec<T>>(
+        vocab_size: usize,
+        token_len: usize,
+        seed: u64,
+        mut f: F,
+    ) {
+        let mut rng = StdRng::seed_from_u64(seed);
+
+        let mut trie = Trie::default();
+        for _ in 0..rng.gen_range(0..vocab_size) {
+            let len = rng.gen_range(0..token_len);
+            let string = Alphanumeric.sample_string(&mut rng, len);
+            trie.insert_ref_iter(f(string).iter());
+        }
+
+        let sam: GeneralSAM<T> = GeneralSAM::construct_from_trie(trie.get_root_state());
+
+        let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
+
+        for _ in 0..rng.gen_range(0..4096) {
+            let len = rng.gen_range(0..1024);
+            let string = Alphanumeric.sample_string(&mut rng, len);
+            case_tokenizer(&tokenizer, &trie, f(string).iter().cloned());
+        }
+    }
+
+    #[test]
+    fn test_tokenizer_small_vocab_bytes() {
+        case_tokenizer_vocab(10, 32, 2450679142816, |s| s.bytes().collect());
+        case_tokenizer_vocab(10, 32, 1928750982347, |s| s.bytes().collect());
+        case_tokenizer_vocab(10, 32, 9173459982325, |s| s.bytes().collect());
+        case_tokenizer_vocab(10, 8, 2450679142816, |s| s.bytes().collect());
+        case_tokenizer_vocab(10, 8, 1928750982347, |s| s.bytes().collect());
+        case_tokenizer_vocab(10, 8, 9173459982325, |s| s.bytes().collect());
+    }
+
+    #[test]
+    fn test_tokenizer_small_vocab_chars() {
+        case_tokenizer_vocab(10, 32, 2450679142816, |s| s.chars().collect());
+        case_tokenizer_vocab(10, 32, 1928750982347, |s| s.chars().collect());
+        case_tokenizer_vocab(10, 32, 9173459982325, |s| s.chars().collect());
+        case_tokenizer_vocab(10, 8, 2450679142816, |s| s.chars().collect());
+        case_tokenizer_vocab(10, 8, 1928750982347, |s| s.chars().collect());
+        case_tokenizer_vocab(10, 8, 9173459982325, |s| s.chars().collect());
+    }
+
+    #[test]
+    fn test_tokenizer_large_vocab_bytes() {
+        case_tokenizer_vocab(64000, 32, 1928750982347, |s| s.bytes().collect());
+        case_tokenizer_vocab(64000, 32, 2450679142816, |s| s.bytes().collect());
+        case_tokenizer_vocab(64000, 8, 1928750982347, |s| s.bytes().collect());
+        case_tokenizer_vocab(64000, 8, 2450679142816, |s| s.bytes().collect());
+        case_tokenizer_vocab(64000, 4, 1928750982347, |s| s.bytes().collect());
+        case_tokenizer_vocab(64000, 4, 2450679142816, |s| s.bytes().collect());
+    }
+
+    #[test]
+    fn test_tokenizer_large_vocab_chars() {
+        case_tokenizer_vocab(64000, 32, 1928750982347, |s| s.chars().collect());
+        case_tokenizer_vocab(64000, 32, 2450679142816, |s| s.chars().collect());
+        case_tokenizer_vocab(64000, 8, 1928750982347, |s| s.chars().collect());
+        case_tokenizer_vocab(64000, 8, 2450679142816, |s| s.chars().collect());
+        case_tokenizer_vocab(64000, 4, 1928750982347, |s| s.chars().collect());
+        case_tokenizer_vocab(64000, 4, 2450679142816, |s| s.chars().collect());
     }
 }
