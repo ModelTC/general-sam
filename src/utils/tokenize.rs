@@ -9,9 +9,7 @@ pub struct GreedyTokenizer<'s, T: Ord + Clone, TokenIDType: Clone + Default> {
     suffix_data: Vec<SuffixInTrieData<TokenIDType>>,
 }
 
-impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + std::fmt::Debug>
-    GreedyTokenizer<'s, T, TokenIDType>
-{
+impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, T, TokenIDType> {
     pub fn build<TN: TrieNodeAlike<InnerType = T> + Clone, F: FnMut(&TN) -> TokenIDType>(
         sam: &'s GeneralSAM<T>,
         trie_node: TN,
@@ -38,39 +36,50 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + std::fmt::Debug>
             cur_len.add_assign(1);
         };
 
-        let pop = |cur_len: &mut usize, cur_state: &mut GeneralSAMState<T>, res: &mut Vec<_>| {
-            let inner_data = self.suffix_data[cur_state.node_id]
-                .get(*cur_len)
-                .expect("invalid state");
-
-            let (token_id, token_len) = inner_data.as_ref().map_or_else(
-                || (unk_token_id, *cur_len),
-                |token_info| (&token_info.digested_trie_node, token_info.seq_len),
-            );
-
-            cur_len.sub_assign(token_len);
-            res.push((token_id.clone(), token_len));
-
-            while *cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
-                cur_state.goto_suffix_parent();
+        let push = |res: &mut Vec<_>, token_id: TokenIDType, token_len: usize| {
+            if let Some((last_token_id, last_token_len)) = res.last_mut() {
+                if *last_token_id == *unk_token_id && token_id == *unk_token_id {
+                    *last_token_len += token_len;
+                    return;
+                }
             }
+            res.push((token_id, token_len))
         };
+
+        let pop_buffer =
+            |cur_len: &mut usize, cur_state: &mut GeneralSAMState<T>, res: &mut Vec<_>| {
+                let inner_data = self.suffix_data[cur_state.node_id]
+                    .get(*cur_len)
+                    .expect("invalid state");
+
+                let (token_id, token_len) = inner_data.as_ref().map_or_else(
+                    || (unk_token_id, *cur_len),
+                    |token_info| (&token_info.digested_trie_node, token_info.seq_len),
+                );
+
+                cur_len.sub_assign(token_len);
+                push(res, token_id.clone(), token_len);
+
+                while *cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
+                    cur_state.goto_suffix_parent();
+                }
+            };
 
         for key in iter {
             debug_assert!(!cur_state.is_nil());
             while cur_len > 0 && !cur_state.has_trans(&key) {
-                pop(&mut cur_len, &mut cur_state, &mut res);
+                pop_buffer(&mut cur_len, &mut cur_state, &mut res);
             }
             if !cur_state.has_trans(&key) {
                 cur_state = self.sam.get_root_state();
-                res.push((unk_token_id.clone(), 1));
+                push(&mut res, unk_token_id.clone(), 1);
                 continue;
             }
             goto(&mut cur_len, &mut cur_state, &key);
         }
 
         while cur_len > 0 {
-            pop(&mut cur_len, &mut cur_state, &mut res);
+            pop_buffer(&mut cur_len, &mut cur_state, &mut res);
         }
 
         res
