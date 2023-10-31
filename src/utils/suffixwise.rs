@@ -13,6 +13,29 @@ pub struct SuffixwiseData<Inner: RopeData + Default> {
 }
 
 impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
+    pub fn get_rope(&self) -> &Rope<Inner> {
+        &self.data
+    }
+
+    pub fn get_min_suf_len(&self) -> usize {
+        self.min_suf_len
+    }
+
+    pub fn get_max_suf_len(&self) -> usize {
+        self.max_suf_len
+    }
+
+    pub fn map<NewInner: RopeData + Default, F: FnOnce(&Rope<Inner>) -> Rope<NewInner>>(
+        &self,
+        f: F,
+    ) -> SuffixwiseData<NewInner> {
+        SuffixwiseData {
+            data: f(&self.data),
+            min_suf_len: self.min_suf_len,
+            max_suf_len: self.max_suf_len,
+        }
+    }
+
     pub fn get(&self, suf_len: usize) -> Option<Inner> {
         if self.data.is_empty()
             || self.max_suf_len == 0
@@ -87,72 +110,45 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
 }
 
 #[derive(Clone, Debug)]
-pub struct SuffixInTrie<TN: TrieNodeAlike + Clone>
-where
-    TN::InnerType: Ord + Clone,
-{
-    pub trie_node: TN,
+pub struct SuffixInTrie<Digested: Clone> {
+    pub digested_trie_node: Digested,
     pub seq_len: usize,
 }
 
-pub type SuffixInTrieData<TN> = SuffixwiseData<RopeUntaggedInner<Option<SuffixInTrie<TN>>>>;
+pub type UntaggedSuffixData<Inner> = SuffixwiseData<RopeUntaggedInner<Inner>>;
+pub type SuffixInTrieData<D> = UntaggedSuffixData<Option<SuffixInTrie<D>>>;
 
-impl<TN: TrieNodeAlike + Clone> SuffixInTrieData<TN>
-where
-    TN::InnerType: Ord + Clone,
-{
-    pub fn build(sam: &GeneralSAM<TN::InnerType>, trie_node: TN) -> Vec<Self> {
-        let mut sam_to_data = vec![LinkedList::<SuffixInTrie<TN>>::new(); sam.num_of_nodes()];
-        let callback = |event: TravelEvent<(&GeneralSAMState<TN::InnerType>, &TN), _, _>| -> Result<usize, Infallible> {
-            match event {
-                crate::TravelEvent::Pop((sam_state, trie_state), len) => {
-                    if trie_state.is_accepting() {
-                        sam_to_data[sam_state.node_id].push_back(SuffixInTrie {
-                            trie_node: trie_state.clone(),
-                            seq_len: len,
-                        });
+impl<Digested: Clone> SuffixInTrieData<Digested> {
+    pub fn build<TN: TrieNodeAlike + Clone, F: FnMut(&TN) -> Digested>(
+        sam: &GeneralSAM<TN::InnerType>,
+        trie_node: TN,
+        mut f: F,
+    ) -> Vec<Self>
+    where
+        TN::InnerType: Ord + Clone,
+    {
+        let mut sam_to_data = vec![LinkedList::<SuffixInTrie<Digested>>::new(); sam.num_of_nodes()];
+        let callback =
+            |event: TravelEvent<(&GeneralSAMState<_>, &TN), _, _>| -> Result<_, Infallible> {
+                match event {
+                    crate::TravelEvent::Pop((sam_state, trie_state), len) => {
+                        if trie_state.is_accepting() {
+                            sam_to_data[sam_state.node_id].push_back(SuffixInTrie {
+                                digested_trie_node: f(trie_state),
+                                seq_len: len,
+                            });
+                        }
+                        Ok(len)
                     }
-                    Ok(len)
+                    crate::TravelEvent::PushRoot(_) => Ok(0),
+                    crate::TravelEvent::Push(_, len, _) => Ok(len + 1),
                 }
-                crate::TravelEvent::PushRoot(_) => Ok(0),
-                crate::TravelEvent::Push(_, len, _) => Ok(len + 1),
-            }
-        };
+            };
         sam.get_root_state().bfs_along(trie_node, callback).unwrap();
         Self::build_from_sam(sam, |node_id| {
             sam_to_data[node_id]
                 .iter()
                 .map(|x| (x.seq_len, Some(x.clone()).into()))
         })
-    }
-}
-
-#[cfg(feature = "trie")]
-#[test]
-fn test_suffix_in_trie_data() {
-    use std::collections::BTreeMap;
-
-    use crate::trie::Trie;
-
-    let vocab = ["a", "ab", "b", "bc", "c", "d", "e", "f", "cd", "abcde", "你好", "🧡"];
-    let mut trie = Trie::default();
-    let mut id_to_word = BTreeMap::new();
-    for word in vocab {
-        id_to_word.insert(trie.insert_iter(word.chars()), word);
-    }
-
-    let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
-    let data = SuffixInTrieData::build(&sam, trie.get_root_state());
-    for i in data {
-        let mut suffix_info = Vec::new();
-        i.data.for_each(|x| {
-            suffix_info.push(x.into_inner().map(|x| {
-                let SuffixInTrie { trie_node, seq_len: chars_count } = x;
-                (chars_count, id_to_word.get(&trie_node.node_id).unwrap())
-            }))
-        });
-        dbg!(i.min_suf_len);
-        dbg!(i.max_suf_len);
-        dbg!(suffix_info);
     }
 }
