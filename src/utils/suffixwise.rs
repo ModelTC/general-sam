@@ -1,3 +1,5 @@
+//! Utilities to store suffix-wise data in a suffix automaton.
+
 use std::{collections::LinkedList, convert::Infallible, ops::Deref};
 
 use crate::{

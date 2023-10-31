@@ -1,3 +1,5 @@
+//! Persistent treap.
+
 use std::{borrow::Cow, ops::Deref, sync::Arc};
 
 use rand::random;
