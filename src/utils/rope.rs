@@ -250,6 +250,12 @@ impl<Inner: RopeData> Default for Rope<Inner> {
 #[derive(Clone, Debug, Default)]
 pub struct RopeUntaggedInner<T: Clone>(T);
 
+impl<T: Clone> RopeUntaggedInner<T> {
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+
 impl<T: Clone> Deref for RopeUntaggedInner<T> {
     type Target = T;
 
