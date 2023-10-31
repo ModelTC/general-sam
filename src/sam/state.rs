@@ -137,7 +137,7 @@ impl<'s, T: Ord + Clone> GeneralSAMState<'s, T> {
     }
 
     pub fn bfs_along<
-        TN: TrieNodeAlike<InnerType = T> + Clone,
+        TN: TrieNodeAlike<InnerType = T>,
         ExtraType,
         ErrorType,
         F: FnMut(
