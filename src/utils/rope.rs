@@ -183,7 +183,7 @@ impl<
     }
 
     fn is_empty(&self) -> bool {
-        self.is_some()
+        self.is_none()
     }
 
     fn len(&self) -> usize {
