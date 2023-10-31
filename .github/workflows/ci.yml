@@ -27,6 +27,9 @@ jobs:
       - run: cargo test --verbose
       - run: cargo build --all-features --verbose
       - run: cargo test --all-features --verbose
+      - run: cargo install cargo-all-features
+      - run: cargo build-all-features --verbose
+      - run: cargo test-all-features --verbose
 
   build_docs:
     name: Docs
