@@ -12,7 +12,7 @@ pub trait RopeData: Clone {
     fn update(&mut self, left: Option<&Self>, right: Option<&Self>);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RopeTreapData<Inner: RopeData> {
     inner: Inner,
     num: usize,
@@ -224,7 +224,7 @@ impl<
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Rope<Inner: RopeData>(TreapTree<RopeTreapData<Inner>>);
 
 impl<Inner: RopeData> From<TreapTree<RopeTreapData<Inner>>> for Rope<Inner> {

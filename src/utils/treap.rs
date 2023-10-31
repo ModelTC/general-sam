@@ -18,10 +18,10 @@ pub trait TreapNodeData: Clone {
     fn update(&mut self, left: Option<&Self>, right: Option<&Self>);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TreapTree<DataType: TreapNodeData>(Option<Arc<TreapNode<DataType>>>);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TreapNode<DataType: TreapNodeData> {
     pub data: DataType,
     height: usize,
