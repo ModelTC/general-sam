@@ -118,7 +118,7 @@ pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROO
 #[cfg(feature = "utils")]
 pub mod utils;
 #[cfg(feature = "utils")]
-pub use utils::rope;
+pub use utils::{rope, suffixwise, tokenize};
 
 #[cfg(test)]
 mod tests;
