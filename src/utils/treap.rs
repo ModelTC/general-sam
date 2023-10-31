@@ -179,6 +179,28 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
         }
     }
 
+    #[must_use]
+    pub fn query<F: FnMut(&TreapNode<DataType>) -> std::cmp::Ordering>(
+        &self,
+        mut f: F,
+    ) -> Option<Cow<DataType>> {
+        if let Some(ref node_ref) = self.deref() {
+            match f(node_ref) {
+                std::cmp::Ordering::Equal => Some(Cow::Borrowed(&node_ref.data)),
+                std::cmp::Ordering::Less => match node_ref.get_left() {
+                    Cow::Borrowed(left) => left.query(f),
+                    Cow::Owned(left) => left.query(f).map(|x| Cow::Owned(x.into_owned())),
+                },
+                std::cmp::Ordering::Greater => match node_ref.get_right() {
+                    Cow::Borrowed(right) => right.query(f),
+                    Cow::Owned(right) => right.query(f).map(|x| Cow::Owned(x.into_owned())),
+                },
+            }
+        } else {
+            None
+        }
+    }
+
     pub fn for_each<F: FnMut(DataType)>(&self, f: &mut F) {
         if let Some(node_ref) = self.deref() {
             node_ref.get_left().for_each(f);
