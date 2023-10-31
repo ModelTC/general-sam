@@ -208,4 +208,8 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
             node_ref.get_right().for_each(f);
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.is_none()
+    }
 }
