@@ -35,6 +35,12 @@ impl<T: Ord + Clone> GeneralSAMState<'_, T> {
             .unwrap_or(false)
     }
 
+    pub fn has_trans(&self, key: &T) -> bool {
+        self.get_node()
+            .map(|node| node.trans.contains_key(key))
+            .unwrap_or(false)
+    }
+
     pub fn get_node(&self) -> Option<&GeneralSAMNode<T>> {
         self.sam.get_node(self.node_id)
     }
