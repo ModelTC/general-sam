@@ -1,3 +1,5 @@
+//! States of a general suffix automaton.
+
 use crate::trie_alike::{TravelEvent, TrieNodeAlike};
 
 use super::{GeneralSAM, GeneralSAMNode, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};

@@ -1,3 +1,5 @@
+//! Greedy tokenizer.
+
 use std::ops::{AddAssign, SubAssign};
 
 use crate::{GeneralSAM, GeneralSAMState, TrieNodeAlike};

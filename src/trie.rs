@@ -1,4 +1,4 @@
-//! A simple implementation of tries with support of `TrieNodeAlike`.
+//! Trie, supporting `TrieNodeAlike`.
 
 use std::collections::{btree_map, BTreeMap};
 

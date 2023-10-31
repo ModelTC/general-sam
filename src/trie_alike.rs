@@ -1,5 +1,5 @@
-//! A trait for constructing `GeneralSAM` from structures like tries
-//! and some other utilities to implement the trait for iterators.
+//! A trait for constructing `GeneralSAM` from structures that form a trie,
+//! and some utilities to construct `GeneralSAM` from iterators.
 
 use std::collections::VecDeque;
 
