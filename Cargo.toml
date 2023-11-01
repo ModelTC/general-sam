@@ -19,13 +19,13 @@ rustdoc-args = ["--cfg", "doc_cfg"]
 [lib]
 name = "general_sam"
 
+[features]
+trie = []
+utils = ["rand"]
+all = ["trie", "utils"]
+
 [dependencies]
 rand = { version = "0.8.5", optional = true }
 
 [dev-dependencies]
 rand = "0.8.5"
-
-[features]
-trie = []
-utils = ["rand"]
-all = ["trie", "utils"]
