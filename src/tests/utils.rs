@@ -4,12 +4,18 @@ use crate::rope::{RopeBase, RopeUntaggedInner, TreapBasedRopeBase, UntaggedRope}
 fn test_rope() {
     let rope = UntaggedRope::<char>::default();
     assert!(rope.get(0).is_none());
+    assert!(rope.is_empty());
+    assert_eq!(rope.len(), 0);
 
     let rope = rope.push_front('a'.into());
     assert!(rope.get(0).is_some_and(|x| *x == 'a'));
+    assert!(!rope.is_empty());
+    assert_eq!(rope.len(), 1);
 
     let rope = rope.push_front('b'.into());
     let rope = rope.push_back('c'.into());
+    assert!(!rope.is_empty());
+    assert_eq!(rope.len(), 3);
     assert!(rope.get(0).is_some_and(|x| *x == 'b'));
     assert!(rope.get(1).is_some_and(|x| *x == 'a'));
     assert!(rope.get(2).is_some_and(|x| *x == 'c'));
@@ -20,6 +26,8 @@ fn test_rope() {
     assert!(rope.query(3).is_none());
 
     let rope = rope.reverse();
+    assert!(!rope.is_empty());
+    assert_eq!(rope.len(), 3);
     assert!(rope.get(0).is_some_and(|x| *x == 'c'));
     assert!(rope.get(1).is_some_and(|x| *x == 'a'));
     assert!(rope.get(2).is_some_and(|x| *x == 'b'));
@@ -73,12 +81,13 @@ mod trie {
     };
 
     use crate::{
+        tokenize::trie::greedy_tokenize_with_trie,
         utils::{
             rope::RopeBase,
             suffixwise::{SuffixInTrie, SuffixInTrieData},
             tokenize::GreedyTokenizer,
         },
-        GeneralSAM, Trie, TrieNodeAlike,
+        GeneralSAM, Trie,
     };
 
     #[test]
@@ -113,57 +122,6 @@ mod trie {
                 i.get_max_suf_len() - i.get_min_suf_len() + 1
             );
         }
-    }
-
-    fn greedy_tokenize_with_trie<T: Ord + Clone, Iter: Iterator<Item = T>>(
-        trie: &Trie<T>,
-        seq: Iter,
-    ) -> Vec<(usize, usize)> {
-        let unk_token_id = trie.num_of_nodes();
-
-        let mut res = Vec::new();
-
-        let push = |res: &mut Vec<_>, token_id: usize, token_len: usize| {
-            if let Some((last_token_id, last_token_len)) = res.last_mut() {
-                if *last_token_id == unk_token_id && token_id == unk_token_id {
-                    *last_token_len += token_len;
-                    return;
-                }
-            }
-            res.push((token_id, token_len))
-        };
-
-        let seq: Box<[_]> = seq.collect();
-        let mut cur = 0;
-        while cur < seq.len() {
-            let mut best: Option<(usize, usize)> = None;
-            let mut cur_state = trie.get_root_state();
-            let mut cur_len = 0;
-            for i in cur..seq.len() {
-                if !cur_state.is_root() && cur_state.is_accepting() {
-                    best = Some((cur_state.node_id, i - cur));
-                }
-                let key = &seq[i];
-                cur_state.goto(key);
-                cur_len += 1;
-                if cur_state.is_nil() {
-                    break;
-                }
-            }
-            if !cur_state.is_root() && !cur_state.is_nil() && cur_state.is_accepting() {
-                best = Some((cur_state.node_id, seq.len() - cur));
-            }
-            if let Some((best_token_id, best_token_len)) = best {
-                push(&mut res, best_token_id, best_token_len);
-                cur += best_token_len;
-            } else {
-                let chunk_size = (cur_len - 1).max(1);
-                push(&mut res, unk_token_id, chunk_size);
-                cur += chunk_size;
-            }
-        }
-
-        res
     }
 
     fn case_tokenizer<T: Ord + Clone, Iter: Iterator<Item = T>>(
