@@ -27,10 +27,9 @@
 //! # Examples
 //!
 //! ```rust
-//! use general_sam::sam::GeneralSAM;
+//! use general_sam::{GeneralSAM, BTreeTransTable};
 //!
-//! let sam = GeneralSAM::construct_from_bytes("abcbc");
-//! // => GeneralSAM<u8>
+//! let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_bytes("abcbc");
 //!
 //! // "cbc" is a suffix of "abcbc"
 //! assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
@@ -40,10 +39,9 @@
 //! ```
 //!
 //! ```rust
-//! use general_sam::sam::GeneralSAM;
+//! use general_sam::{GeneralSAM, BTreeTransTable};
 //!
-//! let sam = GeneralSAM::construct_from_chars("abcbc".chars());
-//! // => GeneralSAM<char>
+//! let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_chars("abcbc".chars());
 //!
 //! let state = sam.get_root_state();
 //!
@@ -66,13 +64,13 @@
 //!
 //! ```rust
 //! # #[cfg(feature = "trie")] {
-//! use general_sam::{sam::GeneralSAM, trie::Trie};
+//! use general_sam::{GeneralSAM, Trie, BTreeTransTable};
 //!
-//! let mut trie = Trie::default();
+//! let mut trie = Trie::<BTreeTransTable<_>>::default();
 //! trie.insert_iter("hello".chars());
 //! trie.insert_iter("Chielo".chars());
 //!
-//! let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
+//! let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_trie(trie.get_root_state());
 //!
 //! assert!(sam.get_root_state().feed_chars("lo").is_accepting());
 //! assert!(sam.get_root_state().feed_chars("ello").is_accepting());
@@ -98,6 +96,7 @@
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
 
 pub mod sam;
+pub mod table;
 pub mod trie_alike;
 
 pub use {
@@ -105,6 +104,7 @@ pub use {
         GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
         SAM_ROOT_NODE_ID,
     },
+    table::{BTreeTransTable, ConstructiveTransitionTable, TransitionTable},
     trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike},
 };
 

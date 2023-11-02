@@ -4,7 +4,8 @@ use std::{collections::LinkedList, convert::Infallible, ops::Deref};
 
 use crate::{
     rope::{Rope, RopeBase, RopeData, RopeUntaggedInner, TreapBasedRopeBase},
-    GeneralSAM, GeneralSAMState, TravelEvent, TrieNodeAlike, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID,
+    GeneralSAM, GeneralSAMState, TransitionTable, TravelEvent, TrieNodeAlike, SAM_NIL_NODE_ID,
+    SAM_ROOT_NODE_ID,
 };
 
 #[derive(Clone, Default, Debug)]
@@ -58,11 +59,11 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
     }
 
     pub fn build_from_sam<
-        T: Ord + Clone,
+        TransTable: TransitionTable,
         Iter: Iterator<Item = (usize, Inner)>,
         FInit: FnMut(usize) -> Iter,
     >(
-        sam: &GeneralSAM<T>,
+        sam: &GeneralSAM<TransTable>,
         mut f_init: FInit,
     ) -> Vec<Self> {
         let mut res = vec![Self::default(); sam.num_of_nodes()];
@@ -104,9 +105,12 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
                 );
             }
 
-            node.get_trans().values().copied().for_each(|target_id| {
-                res[target_id].data = res[target_id].data.merge(&res[node_id].data)
-            });
+            node.get_trans()
+                .transitions()
+                .copied()
+                .for_each(|target_id| {
+                    res[target_id].data = res[target_id].data.merge(&res[node_id].data)
+                });
         }
         res
     }
@@ -122,14 +126,15 @@ pub type UntaggedSuffixData<Inner> = SuffixwiseData<RopeUntaggedInner<Inner>>;
 pub type SuffixInTrieData<D> = UntaggedSuffixData<Option<SuffixInTrie<D>>>;
 
 impl<Digested: Clone> SuffixInTrieData<Digested> {
-    pub fn build<TN: TrieNodeAlike + Clone, F: FnMut(&TN) -> Digested>(
-        sam: &GeneralSAM<TN::InnerType>,
+    pub fn build<
+        TransTable: TransitionTable,
+        TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
+        F: FnMut(&TN) -> Digested,
+    >(
+        sam: &GeneralSAM<TransTable>,
         trie_node: TN,
         mut f: F,
-    ) -> Vec<Self>
-    where
-        TN::InnerType: Ord + Clone,
-    {
+    ) -> Vec<Self> {
         let mut sam_to_data = vec![LinkedList::<SuffixInTrie<Digested>>::new(); sam.num_of_nodes()];
         let callback =
             |event: TravelEvent<(&GeneralSAMState<_>, &TN), _, _>| -> Result<_, Infallible> {

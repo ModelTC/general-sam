@@ -11,11 +11,6 @@ readme = "README.md"
 authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
 exclude = ["release-plz.toml"]
 
-[package.metadata.docs.rs]
-# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
-all-features = true
-rustdoc-args = ["--cfg", "doc_cfg"]
-
 [lib]
 name = "general_sam"
 bench = false
@@ -37,3 +32,11 @@ tokenizers = "0.14.1"
 name = "tokenize"
 harness = false
 required-features = ["all"]
+
+[package.metadata.docs.rs]
+# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
+all-features = true
+rustdoc-args = ["--cfg", "doc_cfg"]
+
+[package.metadata.cargo-all-features]
+skip_optional_dependencies = true

@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use general_sam::{
     tokenize::{trie::greedy_tokenize_with_trie, GreedyTokenizer},
-    GeneralSAM, Trie,
+    BTreeTransTable, ConstructiveTransitionTable, GeneralSAM, TransitionTable, Trie,
 };
 use rand::{
     distributions::{Alphanumeric, DistString},
@@ -73,8 +73,8 @@ fn gen_normal_seq(vocab: &Vocab) -> String {
 }
 
 fn gen_bad_seq(vocab: &Vocab) -> String {
-    let num_of_tokens: usize = std::env::var("SEQ_NUM_TOKENS")
-        .map_or(500, |x| x.parse().expect("invalid SEQ_NUM_TOKENS"));
+    let num_of_tokens: usize =
+        std::env::var("SEQ_NUM_TOKENS").map_or(500, |x| x.parse().expect("invalid SEQ_NUM_TOKENS"));
 
     let tokens: Box<[&String]> = vocab.keys().collect();
     let mut rng = get_rng(9813467507349067);
@@ -128,7 +128,10 @@ fn tokenize_with_hf(tokenizer: &HFTokenizer, seq: &str) -> Vec<u32> {
         .collect()
 }
 
-fn tokenize_with_sam(tokenizer: &GreedyTokenizer<char, u32>, seq: &str) -> Vec<u32> {
+fn tokenize_with_sam<T: TransitionTable<KeyType = char>>(
+    tokenizer: &GreedyTokenizer<T, u32>,
+    seq: &str,
+) -> Vec<u32> {
     tokenizer
         .tokenize(seq.chars(), &0)
         .iter()
@@ -136,14 +139,20 @@ fn tokenize_with_sam(tokenizer: &GreedyTokenizer<char, u32>, seq: &str) -> Vec<u
         .collect()
 }
 
-fn tokenize_with_trie(trie: &Trie<char>, trie_to_token: &[u32], seq: &str) -> Vec<u32> {
+fn tokenize_with_trie<T: TransitionTable<KeyType = char>>(
+    trie: &Trie<T>,
+    trie_to_token: &[u32],
+    seq: &str,
+) -> Vec<u32> {
     greedy_tokenize_with_trie(trie, seq.chars())
         .iter()
         .map(|x| trie_to_token[x.0])
         .collect()
 }
 
-fn build_trie(vocab: &Vocab) -> (Trie<char>, Vec<u32>) {
+fn build_trie<T: ConstructiveTransitionTable<KeyType = char>>(
+    vocab: &Vocab,
+) -> (Trie<T>, Vec<u32>) {
     let mut trie = Trie::default();
     let mut trie_id_and_token_id = Vec::new();
     for (k, v) in vocab.iter() {
@@ -168,9 +177,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     let seq = gen_seq(&vocab);
 
     println!("building trie...");
-    let (trie, trie_to_token) = build_trie(&vocab);
+    let (trie, trie_to_token) = build_trie::<BTreeTransTable<char>>(&vocab);
     println!("building sam...");
-    let sam = GeneralSAM::<char>::construct_from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeMap<char, usize>>::construct_from_trie(trie.get_root_state());
     println!("building greedy tokenizer...");
     let tokenizer =
         GreedyTokenizer::build(&sam, trie.get_root_state(), |tn| trie_to_token[tn.node_id]);
