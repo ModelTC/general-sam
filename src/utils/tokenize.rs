@@ -30,14 +30,6 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
     ) -> Vec<(TokenIDType, usize)> {
         let mut res = Vec::new();
 
-        let mut cur_state = self.sam.get_root_state();
-        let mut cur_len = 0;
-
-        let goto = |cur_len: &mut usize, cur_state: &mut GeneralSAMState<T>, key: &T| {
-            cur_state.goto(key);
-            cur_len.add_assign(1);
-        };
-
         let push = |res: &mut Vec<_>, token_id: TokenIDType, token_len: usize| {
             if let Some((last_token_id, last_token_len)) = res.last_mut() {
                 if *last_token_id == *unk_token_id && token_id == *unk_token_id {
@@ -69,17 +61,23 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
                 }
             };
 
+        let mut cur_state = self.sam.get_root_state();
+        let mut cur_len = 0;
+
         for key in iter {
             debug_assert!(!cur_state.is_nil());
-            while cur_len > 0 && !cur_state.has_trans(&key) {
+            let mut nxt_state = cur_state.get_non_nil_trans(&key);
+            while cur_len > 0 && nxt_state.is_none() {
                 pop_buffer(&mut cur_len, &mut cur_state, &mut res);
+                nxt_state = cur_state.get_non_nil_trans(&key);
             }
-            if !cur_state.has_trans(&key) {
+            if let Some(nxt) = nxt_state {
+                cur_state = nxt;
+                cur_len.add_assign(1);
+            } else {
                 debug_assert!(cur_state.is_root());
                 push(&mut res, unk_token_id.clone(), 1);
-                continue;
             }
-            goto(&mut cur_len, &mut cur_state, &key);
         }
 
         while cur_len > 0 {

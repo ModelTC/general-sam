@@ -37,10 +37,10 @@ impl<T: Ord + Clone> GeneralSAMState<'_, T> {
             .unwrap_or(false)
     }
 
-    pub fn has_trans(&self, key: &T) -> bool {
+    pub fn get_non_nil_trans(&self, key: &T) -> Option<Self> {
         self.get_node()
-            .map(|node| node.trans.contains_key(key))
-            .unwrap_or(false)
+            .and_then(|node| node.trans.get(key))
+            .map(|x| self.sam.get_state(*x))
     }
 
     pub fn get_node(&self) -> Option<&GeneralSAMNode<T>> {
