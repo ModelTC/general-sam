@@ -64,10 +64,6 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 
                 cur_len.sub_assign(token_len);
                 push(res, token_id.clone(), token_len);
-
-                while *cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
-                    cur_state.goto_suffix_parent();
-                }
             };
 
         let mut cur_state = self.sam.get_root_state();
@@ -78,7 +74,13 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
             let mut nxt_state = cur_state.get_non_nil_trans(&key);
             while cur_len > 0 && nxt_state.is_none() {
                 pop_buffer(&mut cur_len, &mut cur_state, &mut res);
-                nxt_state = cur_state.get_non_nil_trans(&key);
+
+                if cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
+                    while cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
+                        cur_state.goto_suffix_parent();
+                    }
+                    nxt_state = cur_state.get_non_nil_trans(&key);
+                }
             }
             if let Some(nxt) = nxt_state {
                 cur_state = nxt;
@@ -91,6 +93,10 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 
         while cur_len > 0 {
             pop_buffer(&mut cur_len, &mut cur_state, &mut res);
+
+            while cur_len < self.suffix_data[cur_state.node_id].get_min_suf_len() {
+                cur_state.goto_suffix_parent();
+            }
         }
 
         res
@@ -136,14 +142,12 @@ pub mod trie {
         while cur < seq.len() {
             let mut best: Option<(usize, usize)> = None;
             let mut cur_state = trie.get_root_state();
-            let mut cur_len = 0;
             for i in cur..seq.len() {
                 if !cur_state.is_root() && cur_state.is_accepting() {
                     best = Some((cur_state.node_id, i - cur));
                 }
                 let key = &seq[i];
                 cur_state.goto(key);
-                cur_len += 1;
                 if cur_state.is_nil() {
                     break;
                 }
@@ -155,9 +159,8 @@ pub mod trie {
                 push(&mut res, best_token_id, best_token_len);
                 cur += best_token_len;
             } else {
-                let chunk_size = (cur_len - 1).max(1);
-                push(&mut res, unk_token_id, chunk_size);
-                cur += chunk_size;
+                push(&mut res, unk_token_id, 1);
+                cur += 1;
             }
         }
 
