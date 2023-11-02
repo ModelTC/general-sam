@@ -42,6 +42,16 @@ impl<TransTable: TransitionTable> TrieNode<TransTable> {
     pub fn get_parent(&self) -> TrieNodeID {
         self.parent
     }
+
+    fn alter_trans_table<NewTableType: TransitionTable<KeyType = TransTable::KeyType>>(
+        &self,
+    ) -> TrieNode<NewTableType> {
+        TrieNode {
+            trans: NewTableType::from_kv_iter(self.trans.iter()),
+            parent: self.parent,
+            accept: self.accept,
+        }
+    }
 }
 
 impl<TransTable: ConstructiveTransitionTable> Default for Trie<TransTable> {
@@ -83,6 +93,18 @@ impl<TransTable: TransitionTable> Trie<TransTable> {
 
     pub fn get_root_state(&self) -> TrieState<TransTable> {
         self.get_state(TRIE_ROOT_NODE_ID)
+    }
+
+    pub fn alter_trans_table<NewTableType: TransitionTable<KeyType = TransTable::KeyType>>(
+        &self,
+    ) -> Trie<NewTableType> {
+        Trie {
+            node_pool: self
+                .node_pool
+                .iter()
+                .map(|x| x.alter_trans_table())
+                .collect(),
+        }
     }
 }
 
