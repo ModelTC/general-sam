@@ -3,11 +3,10 @@
 mod state;
 pub use state::GeneralSAMState;
 
-use std::{collections::BTreeMap, convert::Infallible};
+use std::convert::Infallible;
 
 use crate::{
-    trie_alike::{IterAsChain, TrieNodeAlike},
-    TravelEvent,
+    ConstructiveTransitionTable, IterAsChain, TransitionTable, TravelEvent, TrieNodeAlike,
 };
 
 pub type GeneralSAMNodeID = usize;
@@ -15,8 +14,8 @@ pub const SAM_NIL_NODE_ID: GeneralSAMNodeID = 0;
 pub const SAM_ROOT_NODE_ID: GeneralSAMNodeID = 1;
 
 #[derive(Debug, Clone)]
-pub struct GeneralSAMNode<T: Ord + Clone> {
-    trans: BTreeMap<T, GeneralSAMNodeID>,
+pub struct GeneralSAMNode<TransTable: TransitionTable> {
+    trans: TransTable,
     accept: bool,
     len: usize,
     link: GeneralSAMNodeID,
@@ -24,21 +23,23 @@ pub struct GeneralSAMNode<T: Ord + Clone> {
 
 /// A general suffix automaton.
 #[derive(Debug, Clone)]
-pub struct GeneralSAM<T: Ord + Clone> {
-    node_pool: Vec<GeneralSAMNode<T>>,
+pub struct GeneralSAM<TransTable: TransitionTable> {
+    node_pool: Vec<GeneralSAMNode<TransTable>>,
     topo_and_suf_len_sorted_order: Vec<GeneralSAMNodeID>,
 }
 
-impl<T: Ord + Clone> GeneralSAMNode<T> {
+impl<TransTable: ConstructiveTransitionTable> GeneralSAMNode<TransTable> {
     fn new(accept: bool, len: usize, link: GeneralSAMNodeID) -> Self {
         Self {
-            trans: BTreeMap::new(),
+            trans: Default::default(),
             accept,
             len,
             link,
         }
     }
+}
 
+impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
     pub fn is_accepting(&self) -> bool {
         self.accept
     }
@@ -51,33 +52,33 @@ impl<T: Ord + Clone> GeneralSAMNode<T> {
         self.link
     }
 
-    pub fn get_trans(&self) -> &BTreeMap<T, GeneralSAMNodeID> {
+    pub fn get_trans(&self) -> &TransTable {
         &self.trans
     }
 }
 
-impl GeneralSAM<u8> {
+impl<TransTable: ConstructiveTransitionTable<KeyType = u8>> GeneralSAM<TransTable> {
     pub fn construct_from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::construct_from_trie(iter)
     }
 }
 
-impl GeneralSAM<u32> {
+impl<TransTable: ConstructiveTransitionTable<KeyType = u32>> GeneralSAM<TransTable> {
     pub fn construct_from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::construct_from_trie(iter)
     }
 }
 
-impl GeneralSAM<char> {
+impl<TransTable: ConstructiveTransitionTable<KeyType = char>> GeneralSAM<TransTable> {
     pub fn construct_from_chars<S: Iterator<Item = char>>(s: S) -> Self {
         let iter = IterAsChain::from(s);
         Self::construct_from_trie(iter)
     }
 }
 
-impl<T: Ord + Clone> Default for GeneralSAM<T> {
+impl<TransTable: ConstructiveTransitionTable> Default for GeneralSAM<TransTable> {
     fn default() -> Self {
         Self {
             node_pool: vec![
@@ -89,24 +90,24 @@ impl<T: Ord + Clone> Default for GeneralSAM<T> {
     }
 }
 
-impl<T: Ord + Clone> GeneralSAM<T> {
+impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
     pub fn num_of_nodes(&self) -> usize {
         self.node_pool.len()
     }
 
-    pub fn get_root_node(&self) -> &GeneralSAMNode<T> {
+    pub fn get_root_node(&self) -> &GeneralSAMNode<TransTable> {
         self.get_node(SAM_ROOT_NODE_ID).unwrap()
     }
 
-    pub fn get_node(&self, node_id: GeneralSAMNodeID) -> Option<&GeneralSAMNode<T>> {
+    pub fn get_node(&self, node_id: GeneralSAMNodeID) -> Option<&GeneralSAMNode<TransTable>> {
         self.node_pool.get(node_id)
     }
 
-    pub fn get_root_state(&self) -> GeneralSAMState<T> {
+    pub fn get_root_state(&self) -> GeneralSAMState<TransTable> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
 
-    pub fn get_state(&self, node_id: GeneralSAMNodeID) -> GeneralSAMState<T> {
+    pub fn get_state(&self, node_id: GeneralSAMNodeID) -> GeneralSAMState<TransTable> {
         if node_id < self.node_pool.len() {
             GeneralSAMState { sam: self, node_id }
         } else {
@@ -123,10 +124,12 @@ impl<T: Ord + Clone> GeneralSAM<T> {
     pub fn get_topo_and_suf_len_sorted_node_ids(&self) -> &Vec<GeneralSAMNodeID> {
         &self.topo_and_suf_len_sorted_order
     }
+}
 
+impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
     pub fn construct_from_trie<TN: TrieNodeAlike>(node: TN) -> Self
     where
-        TN::InnerType: Into<T>,
+        TN::InnerType: Into<TransTable::KeyType>,
     {
         let mut sam = Self::default();
 
@@ -143,7 +146,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
 
     fn build_with_trie<TN: TrieNodeAlike>(&mut self, node: TN)
     where
-        TN::InnerType: Into<T>,
+        TN::InnerType: Into<TransTable::KeyType>,
     {
         node.bfs_travel(|event| -> Result<GeneralSAMNodeID, Infallible> {
             match event {
@@ -161,7 +164,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         let mut in_degree: Vec<usize> = vec![0; self.num_of_nodes()];
 
         self.node_pool.iter().for_each(|node| {
-            node.trans.values().for_each(|v| {
+            node.trans.transitions().for_each(|v| {
                 in_degree[*v] += 1;
             });
         });
@@ -175,7 +178,7 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         while head < self.topo_and_suf_len_sorted_order.len() {
             let u_id = self.topo_and_suf_len_sorted_order[head];
             head += 1;
-            self.node_pool[u_id].trans.values().for_each(|v_id| {
+            self.node_pool[u_id].trans.transitions().for_each(|v_id| {
                 in_degree[*v_id] -= 1;
                 if in_degree[*v_id] == 0 {
                     self.topo_and_suf_len_sorted_order.push(*v_id);
@@ -195,19 +198,19 @@ impl<T: Ord + Clone> GeneralSAM<T> {
         self.node_pool[SAM_NIL_NODE_ID].accept = false;
     }
 
-    fn alloc_node(&mut self, node: GeneralSAMNode<T>) -> GeneralSAMNodeID {
+    fn alloc_node(&mut self, node: GeneralSAMNode<TransTable>) -> GeneralSAMNodeID {
         let id = self.node_pool.len();
         self.node_pool.push(node);
         id
     }
 
-    fn insert_node_trans<Key: Into<T>>(
+    fn insert_node_trans<Key: Into<TransTable::KeyType>>(
         &mut self,
         last_node_id: GeneralSAMNodeID,
         key: Key,
         accept: bool,
     ) -> GeneralSAMNodeID {
-        let key: T = key.into();
+        let key: TransTable::KeyType = key.into();
 
         let new_node_id = {
             let last_node = &self.node_pool[last_node_id];

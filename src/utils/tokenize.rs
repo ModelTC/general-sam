@@ -2,18 +2,27 @@
 
 use std::ops::{AddAssign, SubAssign};
 
-use crate::{GeneralSAM, GeneralSAMState, TrieNodeAlike};
+use crate::{GeneralSAM, GeneralSAMState, TransitionTable, TrieNodeAlike};
 
 use super::suffixwise::SuffixInTrieData;
 
-pub struct GreedyTokenizer<'s, T: Ord + Clone, TokenIDType: Clone + Default> {
-    sam: &'s GeneralSAM<T>,
+pub struct GreedyTokenizer<
+    's,
+    TransTable: TransitionTable,
+    TokenIDType: Clone + Default + PartialEq,
+> {
+    sam: &'s GeneralSAM<TransTable>,
     suffix_data: Vec<SuffixInTrieData<TokenIDType>>,
 }
 
-impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, T, TokenIDType> {
-    pub fn build<TN: TrieNodeAlike<InnerType = T> + Clone, F: FnMut(&TN) -> TokenIDType>(
-        sam: &'s GeneralSAM<T>,
+impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
+    GreedyTokenizer<'s, TransTable, TokenIDType>
+{
+    pub fn build<
+        TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
+        F: FnMut(&TN) -> TokenIDType,
+    >(
+        sam: &'s GeneralSAM<TransTable>,
         trie_node: TN,
         f: F,
     ) -> Self {
@@ -23,7 +32,7 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
         }
     }
 
-    pub fn tokenize<Iter: Iterator<Item = T>>(
+    pub fn tokenize<Iter: Iterator<Item = TransTable::KeyType>>(
         &self,
         iter: Iter,
         unk_token_id: &TokenIDType,
@@ -41,7 +50,7 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
         };
 
         let pop_buffer =
-            |cur_len: &mut usize, cur_state: &mut GeneralSAMState<T>, res: &mut Vec<_>| {
+            |cur_len: &mut usize, cur_state: &mut GeneralSAMState<TransTable>, res: &mut Vec<_>| {
                 let inner_data = self.suffix_data[cur_state.node_id]
                     .get(*cur_len)
                     .expect("invalid state");
@@ -90,16 +99,22 @@ impl<'s, T: Ord + Clone, TokenIDType: Clone + Default + Eq> GreedyTokenizer<'s, 
 
 #[cfg(feature = "trie")]
 pub mod trie {
-    use crate::{GeneralSAM, Trie, TrieNodeAlike, TrieNodeID, TrieState};
+    use crate::{GeneralSAM, TransitionTable, Trie, TrieNodeAlike, TrieNodeID, TrieState};
 
-    impl<'s, T: Ord + Clone> super::GreedyTokenizer<'s, T, TrieNodeID> {
-        pub fn build_from_trie(sam: &'s GeneralSAM<T>, trie_state: TrieState<'s, T>) -> Self {
+    impl<'s, TransTable: TransitionTable> super::GreedyTokenizer<'s, TransTable, TrieNodeID> {
+        pub fn build_from_trie<TT: TransitionTable<KeyType = TransTable::KeyType>>(
+            sam: &'s GeneralSAM<TransTable>,
+            trie_state: TrieState<'s, TT>,
+        ) -> Self {
             Self::build(sam, trie_state, |tn| tn.node_id)
         }
     }
 
-    pub fn greedy_tokenize_with_trie<T: Ord + Clone, Iter: Iterator<Item = T>>(
-        trie: &Trie<T>,
+    pub fn greedy_tokenize_with_trie<
+        TransTable: TransitionTable,
+        Iter: Iterator<Item = TransTable::KeyType>,
+    >(
+        trie: &Trie<TransTable>,
         seq: Iter,
     ) -> Vec<(usize, usize)> {
         let unk_token_id = trie.num_of_nodes();

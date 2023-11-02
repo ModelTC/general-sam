@@ -4,16 +4,17 @@ use rand::{
     Rng, SeedableRng,
 };
 
-use crate::{GeneralSAM, Trie, SAM_ROOT_NODE_ID};
+use crate::{BTreeTransTable, GeneralSAM, Trie, SAM_ROOT_NODE_ID};
 
 #[test]
 fn test_example_from_trie() {
-    let mut trie = Trie::default();
+    let mut trie = Trie::<BTreeTransTable<char>>::default();
 
     trie.insert_iter("hello".chars());
     trie.insert_iter("Chielo".chars());
 
-    let sam_from_trie: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
+    let sam_from_trie =
+        GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
 
     let state = sam_from_trie.get_root_state();
     assert!(state.is_root());
@@ -31,12 +32,12 @@ fn test_example_from_trie() {
 }
 
 fn case_trie_suffix(vocab: &[&str]) {
-    let mut trie = Trie::default();
+    let mut trie = Trie::<BTreeTransTable<char>>::default();
     vocab.iter().for_each(|word| {
         trie.insert_iter(word.chars());
     });
 
-    let sam: GeneralSAM<char> = GeneralSAM::construct_from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
 
     let is_suffix = |word_slice: &str| vocab.iter().any(|word| word.ends_with(word_slice));
 
@@ -71,14 +72,14 @@ fn test_simple_trie_suffix() {
 fn test_topo_and_suf_len_sorted_order() {
     let mut rng = StdRng::seed_from_u64(1134759173975);
     for _ in 0..10000 {
-        let mut trie = Trie::default();
+        let mut trie = Trie::<BTreeTransTable<u8>>::default();
         for _ in 0..rng.gen_range(0..32) {
             let len = rng.gen_range(0..9);
             let string = Alphanumeric.sample_string(&mut rng, len);
             trie.insert_ref_iter(string.as_bytes().iter());
         }
 
-        let sam: GeneralSAM<u8> = GeneralSAM::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<u8>>::construct_from_trie(trie.get_root_state());
 
         let order = sam.get_topo_and_suf_len_sorted_node_ids();
         let rank = {
