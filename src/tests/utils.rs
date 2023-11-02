@@ -81,13 +81,14 @@ mod trie {
     };
 
     use crate::{
+        table::HashTransTable,
         tokenize::trie::greedy_tokenize_with_trie,
         utils::{
             rope::RopeBase,
             suffixwise::{SuffixInTrie, SuffixInTrieData},
             tokenize::GreedyTokenizer,
         },
-        BTreeTransTable, ConstructiveTransitionTable, GeneralSAM, TransitionTable, Trie,
+        BTreeTransTable, GeneralSAM, TransitionTable, Trie,
     };
 
     #[test]
@@ -188,25 +189,29 @@ mod trie {
     }
 
     fn case_tokenizer_vocab<
-        T: Clone,
-        TransTable: ConstructiveTransitionTable<KeyType = T>,
+        T: Clone + Ord + Eq + std::hash::Hash,
+        TransTable: TransitionTable<KeyType = T>,
         F: FnMut(String) -> Vec<T>,
     >(
         vocab_size: usize,
         token_len: usize,
         seed: u64,
-        mut f: F,
+        f: &mut F,
     ) {
         let mut rng = StdRng::seed_from_u64(seed);
 
-        let mut trie = Trie::<TransTable>::default();
+        let mut trie = Trie::<BTreeTransTable<TransTable::KeyType>>::default();
         for _ in 0..rng.gen_range(0..vocab_size) {
             let len = rng.gen_range(0..token_len);
             let string = Alphanumeric.sample_string(&mut rng, len);
             trie.insert_ref_iter(f(string).iter());
         }
+        let trie = trie.alter_trans_table::<TransTable>();
 
-        let sam = GeneralSAM::<TransTable>::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::construct_from_trie(
+            trie.get_root_state(),
+        )
+        .alter_trans_table_into::<TransTable>();
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -217,91 +222,42 @@ mod trie {
         }
     }
 
+    fn tokenizer_cases<
+        T: Clone + Ord + Eq + std::hash::Hash,
+        TransTable: TransitionTable<KeyType = T>,
+        F: FnMut(String) -> Vec<T>,
+    >(
+        vocab_size: usize,
+        mut f: &mut F,
+    ) {
+        for token_len in [32, 8, 4] {
+            case_tokenizer_vocab::<_, TransTable, _>(vocab_size, token_len, 1928750982347, &mut f);
+            case_tokenizer_vocab::<_, TransTable, _>(vocab_size, token_len, 2450679142816, &mut f);
+            case_tokenizer_vocab::<_, TransTable, _>(vocab_size, token_len, 9173459982325, &mut f);
+        }
+    }
+
     #[test]
     fn test_tokenizer_small_vocab_bytes() {
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 2450679142816, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 1928750982347, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 9173459982325, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 2450679142816, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 1928750982347, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 9173459982325, |s| {
-            s.bytes().collect()
-        });
+        tokenizer_cases::<u8, BTreeTransTable<_>, _>(10, &mut |s| s.bytes().collect());
+        tokenizer_cases::<u8, HashTransTable<_>, _>(10, &mut |s| s.bytes().collect());
     }
 
     #[test]
     fn test_tokenizer_small_vocab_chars() {
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 2450679142816, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 1928750982347, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 32, 9173459982325, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 2450679142816, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 1928750982347, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(10, 8, 9173459982325, |s| {
-            s.chars().collect()
-        });
+        tokenizer_cases::<char, BTreeTransTable<_>, _>(10, &mut |s| s.chars().collect());
+        tokenizer_cases::<char, HashTransTable<_>, _>(10, &mut |s| s.chars().collect());
     }
 
     #[test]
     fn test_tokenizer_large_vocab_bytes() {
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 32, 1928750982347, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 32, 2450679142816, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 8, 1928750982347, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 8, 2450679142816, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 4, 1928750982347, |s| {
-            s.bytes().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 4, 2450679142816, |s| {
-            s.bytes().collect()
-        });
+        tokenizer_cases::<u8, BTreeTransTable<_>, _>(64000, &mut |s| s.bytes().collect());
+        tokenizer_cases::<u8, HashTransTable<_>, _>(64000, &mut |s| s.bytes().collect());
     }
 
     #[test]
     fn test_tokenizer_large_vocab_chars() {
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 32, 1928750982347, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 32, 2450679142816, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 8, 1928750982347, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 8, 2450679142816, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 4, 1928750982347, |s| {
-            s.chars().collect()
-        });
-        case_tokenizer_vocab::<_, BTreeTransTable<_>, _>(64000, 4, 2450679142816, |s| {
-            s.chars().collect()
-        });
+        tokenizer_cases::<char, BTreeTransTable<_>, _>(64000, &mut |s| s.chars().collect());
+        tokenizer_cases::<char, HashTransTable<_>, _>(64000, &mut |s| s.chars().collect());
     }
 }

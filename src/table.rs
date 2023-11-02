@@ -1,6 +1,6 @@
 //! Transition table backends.
 
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{btree_map, hash_map, BTreeMap, HashMap};
 
 use crate::GeneralSAMNodeID;
 
@@ -86,6 +86,42 @@ impl<KeyType: Clone + Ord> TransitionTable for BTreeTransTable<KeyType> {
 
     fn iter(&self) -> Self::IterType<'_> {
         BTreeMap::iter(self)
+    }
+
+    fn from_kv_iter<'b, Iter: Iterator<Item = (&'b KeyType, &'b GeneralSAMNodeID)>>(
+        iter: Iter,
+    ) -> Self
+    where
+        Self::KeyType: 'b,
+    {
+        <Self as ConstructiveTransitionTable>::from_kv_iter(iter)
+    }
+}
+
+pub type HashTransTable<KeyType> = HashMap<KeyType, GeneralSAMNodeID>;
+
+impl<KeyType: std::hash::Hash + Eq + Clone> ConstructiveTransitionTable
+    for HashTransTable<KeyType>
+{
+    fn insert(&mut self, key: KeyType, trans: GeneralSAMNodeID) {
+        HashMap::insert(self, key, trans);
+    }
+}
+
+impl<KeyType: std::hash::Hash + Eq + Clone> TransitionTable for HashTransTable<KeyType> {
+    type KeyType = KeyType;
+    type IterType<'a> = hash_map::Iter<'a, KeyType, GeneralSAMNodeID> where Self: 'a, Self::KeyType: 'a;
+
+    fn get(&self, key: &KeyType) -> Option<&GeneralSAMNodeID> {
+        HashMap::get(self, key)
+    }
+
+    fn get_mut(&mut self, key: &KeyType) -> Option<&mut GeneralSAMNodeID> {
+        HashMap::get_mut(self, key)
+    }
+
+    fn iter(&self) -> Self::IterType<'_> {
+        HashMap::iter(self)
     }
 
     fn from_kv_iter<'b, Iter: Iterator<Item = (&'b KeyType, &'b GeneralSAMNodeID)>>(
