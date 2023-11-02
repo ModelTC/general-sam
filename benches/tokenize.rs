@@ -1,9 +1,10 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use general_sam::{
+    table::{BoxBisectTable, HashTransTable, VecBisectTable},
     tokenize::{trie::greedy_tokenize_with_trie, GreedyTokenizer},
-    BTreeTransTable, ConstructiveTransitionTable, GeneralSAM, TransitionTable, Trie,
+    BTreeTransTable, GeneralSAM, TransitionTable, Trie,
 };
 use rand::{
     distributions::{Alphanumeric, DistString},
@@ -150,10 +151,8 @@ fn tokenize_with_trie<T: TransitionTable<KeyType = char>>(
         .collect()
 }
 
-fn build_trie<T: ConstructiveTransitionTable<KeyType = char>>(
-    vocab: &Vocab,
-) -> (Trie<T>, Vec<u32>) {
-    let mut trie = Trie::default();
+fn build_trie<T: TransitionTable<KeyType = char>>(vocab: &Vocab) -> (Trie<T>, Vec<u32>) {
+    let mut trie = Trie::<BTreeTransTable<_>>::default();
     let mut trie_id_and_token_id = Vec::new();
     for (k, v) in vocab.iter() {
         let node_id = trie.insert_iter(k.chars());
@@ -163,10 +162,12 @@ fn build_trie<T: ConstructiveTransitionTable<KeyType = char>>(
     for (u, v) in trie_id_and_token_id.iter() {
         trie_to_token[*u] = *v;
     }
-    (trie, trie_to_token)
+    (trie.alter_trans_table(), trie_to_token)
 }
 
-fn criterion_benchmark(c: &mut Criterion) {
+fn criterion_benchmark<TransTable: TransitionTable<KeyType = char>>(c: &mut Criterion) {
+    println!("{}", std::any::type_name::<TransTable>());
+
     println!("building hf_tokenizer...");
     let hf_tokenizer = load_hf_tokenizer();
 
@@ -177,9 +178,10 @@ fn criterion_benchmark(c: &mut Criterion) {
     let seq = gen_seq(&vocab);
 
     println!("building trie...");
-    let (trie, trie_to_token) = build_trie::<BTreeTransTable<char>>(&vocab);
+    let (trie, trie_to_token) = build_trie::<TransTable>(&vocab);
     println!("building sam...");
-    let sam = GeneralSAM::<BTreeMap<char, usize>>::construct_from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_trie(trie.get_root_state())
+        .alter_trans_table_into::<TransTable>();
     println!("building greedy tokenizer...");
     let tokenizer =
         GreedyTokenizer::build(&sam, trie.get_root_state(), |tn| trie_to_token[tn.node_id]);
@@ -206,5 +208,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(
+    benches,
+    criterion_benchmark<BTreeTransTable<_>>,
+    criterion_benchmark<HashTransTable<_>>,
+    criterion_benchmark<VecBisectTable<_>>,
+    criterion_benchmark<BoxBisectTable<_>>,
+);
 criterion_main!(benches);

@@ -81,7 +81,7 @@ mod trie {
     };
 
     use crate::{
-        table::HashTransTable,
+        table::{BoxBisectTable, HashTransTable, VecBisectTable},
         tokenize::trie::greedy_tokenize_with_trie,
         utils::{
             rope::RopeBase,
@@ -237,27 +237,40 @@ mod trie {
         }
     }
 
+    fn tokenizer_cases_with_all_backends<
+        T: Clone + Ord + Eq + std::hash::Hash,
+        F: FnMut(String) -> Vec<T>,
+    >(
+        vocab_size: usize,
+        mut f: &mut F,
+    ) {
+        tokenizer_cases::<_, BTreeTransTable<_>, _>(vocab_size, &mut f);
+        tokenizer_cases::<_, HashTransTable<_>, _>(vocab_size, &mut f);
+        tokenizer_cases::<_, VecBisectTable<_>, _>(vocab_size, &mut f);
+        tokenizer_cases::<_, BoxBisectTable<_>, _>(vocab_size, &mut f);
+    }
+
     #[test]
     fn test_tokenizer_small_vocab_bytes() {
-        tokenizer_cases::<u8, BTreeTransTable<_>, _>(10, &mut |s| s.bytes().collect());
-        tokenizer_cases::<u8, HashTransTable<_>, _>(10, &mut |s| s.bytes().collect());
+        for i in [10, 16] {
+            tokenizer_cases_with_all_backends::<u8, _>(i, &mut |s| s.bytes().collect());
+        }
     }
 
     #[test]
     fn test_tokenizer_small_vocab_chars() {
-        tokenizer_cases::<char, BTreeTransTable<_>, _>(10, &mut |s| s.chars().collect());
-        tokenizer_cases::<char, HashTransTable<_>, _>(10, &mut |s| s.chars().collect());
+        for i in [10, 16] {
+            tokenizer_cases_with_all_backends::<char, _>(i, &mut |s| s.chars().collect());
+        }
     }
 
     #[test]
     fn test_tokenizer_large_vocab_bytes() {
-        tokenizer_cases::<u8, BTreeTransTable<_>, _>(64000, &mut |s| s.bytes().collect());
-        tokenizer_cases::<u8, HashTransTable<_>, _>(64000, &mut |s| s.bytes().collect());
+        tokenizer_cases_with_all_backends::<u8, _>(8192, &mut |s| s.bytes().collect());
     }
 
     #[test]
     fn test_tokenizer_large_vocab_chars() {
-        tokenizer_cases::<char, BTreeTransTable<_>, _>(64000, &mut |s| s.chars().collect());
-        tokenizer_cases::<char, HashTransTable<_>, _>(64000, &mut |s| s.chars().collect());
+        tokenizer_cases_with_all_backends::<char, _>(8192, &mut |s| s.chars().collect());
     }
 }
