@@ -215,8 +215,8 @@ mod trie {
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
-        for _ in 0..rng.gen_range(0..4096) {
-            let len = rng.gen_range(0..1024);
+        for _ in 0..32 {
+            let len = rng.gen_range(0..4096);
             let string = Alphanumeric.sample_string(&mut rng, len);
             case_tokenizer(&tokenizer, &trie, f(string).iter().cloned());
         }
