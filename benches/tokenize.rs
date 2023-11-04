@@ -90,11 +90,12 @@ fn gen_bad_seq(vocab: &Vocab) -> String {
     chosen.join("")
 }
 
+fn get_gen_style() -> String {
+    std::env::var("STYLE").unwrap_or("bad".to_owned())
+}
+
 fn gen_vocab() -> Vocab {
-    match std::env::var("STYLE")
-        .as_ref()
-        .map_or("normal", |s| s.as_str())
-    {
+    match get_gen_style().as_ref() {
         "normal" => gen_normal_vocab(),
         "bad" => gen_bad_vocab(),
         style => panic!("unknown STYLE {}", style),
@@ -102,10 +103,7 @@ fn gen_vocab() -> Vocab {
 }
 
 fn gen_seq(vocab: &Vocab) -> String {
-    match std::env::var("STYLE")
-        .as_ref()
-        .map_or("normal", |s| s.as_str())
-    {
+    match get_gen_style().as_ref() {
         "normal" => gen_normal_seq(vocab),
         "bad" => gen_bad_seq(vocab),
         style => panic!("unknown STYLE {}", style),
