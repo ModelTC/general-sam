@@ -81,7 +81,7 @@ mod trie {
     };
 
     use crate::{
-        table::{BoxBisectTable, HashTransTable, VecBisectTable},
+        table::{BoxBisectTable, HashTransTable, VecBisectTable, WholeAlphabetTable},
         tokenize::trie::greedy_tokenize_with_trie,
         utils::{
             rope::RopeBase,
@@ -208,10 +208,9 @@ mod trie {
         }
         let trie = trie.alter_trans_table::<TransTable>();
 
-        let sam = GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::from_trie(
-            trie.get_root_state(),
-        )
-        .alter_trans_table_into::<TransTable>();
+        let sam =
+            GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::from_trie(trie.get_root_state())
+                .alter_trans_table_into::<TransTable>();
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -253,14 +252,18 @@ mod trie {
     #[test]
     fn test_tokenizer_small_vocab_bytes() {
         for i in [10, 16] {
-            tokenizer_cases_with_all_backends::<u8, _>(i, &mut |s| s.bytes().collect());
+            let mut f = |s: String| s.bytes().collect();
+            tokenizer_cases_with_all_backends::<u8, _>(i, &mut f);
+            tokenizer_cases::<_, WholeAlphabetTable<_, Vec<_>>, _>(i, &mut f);
+            tokenizer_cases::<_, WholeAlphabetTable<_, Box<[_]>>, _>(i, &mut f);
         }
     }
 
     #[test]
     fn test_tokenizer_small_vocab_chars() {
         for i in [10, 16] {
-            tokenizer_cases_with_all_backends::<char, _>(i, &mut |s| s.chars().collect());
+            let mut f = |s: String| s.chars().collect();
+            tokenizer_cases_with_all_backends::<char, _>(i, &mut f);
         }
     }
 
