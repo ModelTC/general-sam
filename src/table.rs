@@ -171,11 +171,11 @@ pub struct BisectTable<
     phantom: PhantomData<K>,
 }
 
-pub struct SliceTableIter<'s, K: Clone + Ord> {
+pub struct BisectTableIter<'s, K: Clone + Ord> {
     inner: core::slice::Iter<'s, (K, GeneralSAMNodeID)>,
 }
 
-impl<'s, K: Clone + Ord> Iterator for SliceTableIter<'s, K> {
+impl<'s, K: Clone + Ord> Iterator for BisectTableIter<'s, K> {
     type Item = (&'s K, &'s GeneralSAMNodeID);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -191,7 +191,7 @@ impl<
     > TransitionTable for BisectTable<K, C>
 {
     type KeyType = K;
-    type IterType<'a> = SliceTableIter<'a, K> where Self: 'a, Self::KeyType: 'a;
+    type IterType<'a> = BisectTableIter<'a, K> where Self: 'a, Self::KeyType: 'a;
 
     fn get(&self, key: &Self::KeyType) -> Option<&GeneralSAMNodeID> {
         bisect_unstable(&self.inner, key).map(|i| &self.inner.as_ref()[i].1)
@@ -202,7 +202,7 @@ impl<
     }
 
     fn iter(&self) -> Self::IterType<'_> {
-        SliceTableIter {
+        BisectTableIter {
             inner: self.inner.as_ref().iter(),
         }
     }
