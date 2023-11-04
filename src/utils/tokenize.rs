@@ -104,6 +104,7 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 }
 
 #[cfg(feature = "trie")]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "trie")))]
 pub mod trie {
     use crate::{GeneralSAM, TransitionTable, Trie, TrieNodeAlike, TrieNodeID, TrieState};
 
