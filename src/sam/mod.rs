@@ -69,23 +69,23 @@ impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
 }
 
 impl<TransTable: ConstructiveTransitionTable<KeyType = u8>> GeneralSAM<TransTable> {
-    pub fn construct_from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
+    pub fn from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
-        Self::construct_from_trie(iter)
+        Self::from_trie(iter)
     }
 }
 
 impl<TransTable: ConstructiveTransitionTable<KeyType = u32>> GeneralSAM<TransTable> {
-    pub fn construct_from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
+    pub fn from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
-        Self::construct_from_trie(iter)
+        Self::from_trie(iter)
     }
 }
 
 impl<TransTable: ConstructiveTransitionTable<KeyType = char>> GeneralSAM<TransTable> {
-    pub fn construct_from_chars<S: Iterator<Item = char>>(s: S) -> Self {
+    pub fn from_chars<S: Iterator<Item = char>>(s: S) -> Self {
         let iter = IterAsChain::from(s);
-        Self::construct_from_trie(iter)
+        Self::from_trie(iter)
     }
 }
 
@@ -164,7 +164,7 @@ impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
 }
 
 impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
-    pub fn construct_from_trie<TN: TrieNodeAlike>(node: TN) -> Self
+    pub fn from_trie<TN: TrieNodeAlike>(node: TN) -> Self
     where
         TN::InnerType: Into<TransTable::KeyType>,
     {

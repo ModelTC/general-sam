@@ -39,7 +39,7 @@ flowchart LR
 ```rust
 use general_sam::{GeneralSAM, BTreeTransTable};
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_bytes("abcbc");
+let sam = GeneralSAM::<BTreeTransTable<_>>::from_bytes("abcbc");
 
 // "cbc" is a suffix of "abcbc"
 assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
@@ -51,7 +51,7 @@ assert!(!sam.get_root_state().feed_bytes("bcb").is_accepting());
 ```rust
 use general_sam::{GeneralSAM, BTreeTransTable};
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_chars("abcbc".chars());
+let sam = GeneralSAM::<BTreeTransTable<_>>::from_chars("abcbc".chars());
 
 let state = sam.get_root_state();
 
@@ -80,7 +80,7 @@ let mut trie = Trie::<BTreeTransTable<_>>::default();
 trie.insert_iter("hello".chars());
 trie.insert_iter("Chielo".chars());
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_trie(trie.get_root_state());
+let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
 assert!(sam.get_root_state().feed_chars("lo").is_accepting());
 assert!(sam.get_root_state().feed_chars("ello").is_accepting());

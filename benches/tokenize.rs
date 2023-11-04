@@ -180,7 +180,7 @@ fn criterion_benchmark<TransTable: TransitionTable<KeyType = char>>(c: &mut Crit
     println!("building trie...");
     let (trie, trie_to_token) = build_trie::<TransTable>(&vocab);
     println!("building sam...");
-    let sam = GeneralSAM::<BTreeTransTable<_>>::construct_from_trie(trie.get_root_state())
+    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state())
         .alter_trans_table_into::<TransTable>();
     println!("building greedy tokenizer...");
     let tokenizer =

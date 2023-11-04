@@ -102,7 +102,7 @@ mod trie {
             id_to_word.insert(trie.insert_iter(word.chars()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
         let data = SuffixInTrieData::build(&sam, trie.get_root_state(), |tn| tn.clone());
         for i in data.iter().skip(1) {
@@ -153,7 +153,7 @@ mod trie {
             id_to_word.insert(trie.insert_iter(word.chars()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -176,7 +176,7 @@ mod trie {
             id_to_word.insert(trie.insert_iter(word.bytes()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<u8>>::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -208,7 +208,7 @@ mod trie {
         }
         let trie = trie.alter_trans_table::<TransTable>();
 
-        let sam = GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::construct_from_trie(
+        let sam = GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::from_trie(
             trie.get_root_state(),
         )
         .alter_trans_table_into::<TransTable>();

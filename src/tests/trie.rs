@@ -14,7 +14,7 @@ fn test_example_from_trie() {
     trie.insert_iter("Chielo".chars());
 
     let sam_from_trie =
-        GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
+        GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
     let state = sam_from_trie.get_root_state();
     assert!(state.is_root());
@@ -37,7 +37,7 @@ fn case_trie_suffix(vocab: &[&str]) {
         trie.insert_iter(word.chars());
     });
 
-    let sam = GeneralSAM::<BTreeTransTable<char>>::construct_from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
     let is_suffix = |word_slice: &str| vocab.iter().any(|word| word.ends_with(word_slice));
 
@@ -79,7 +79,7 @@ fn test_topo_and_suf_len_sorted_order() {
             trie.insert_ref_iter(string.as_bytes().iter());
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<u8>>::construct_from_trie(trie.get_root_state());
+        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let order = sam.get_topo_and_suf_len_sorted_node_ids();
         let rank = {
