@@ -8,22 +8,21 @@ use crate::{BTreeTransTable, GeneralSAM, Trie, SAM_ROOT_NODE_ID};
 
 #[test]
 fn test_example_from_trie() {
-    let mut trie = Trie::<BTreeTransTable<char>>::default();
+    let mut trie = Trie::<BTreeTransTable<_>>::default();
 
     trie.insert_iter("hello".chars());
     trie.insert_iter("Chielo".chars());
 
-    let sam_from_trie =
-        GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
-    let state = sam_from_trie.get_root_state();
+    let state = sam.get_root_state();
     assert!(state.is_root());
     let state = state.feed_chars("l");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
     let state = state.feed_chars("o");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
 
-    let state = sam_from_trie.get_root_state();
+    let state = sam.get_root_state();
     assert!(state.is_root());
     let state = state.feed_chars("Chie");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
@@ -32,12 +31,12 @@ fn test_example_from_trie() {
 }
 
 fn case_trie_suffix(vocab: &[&str]) {
-    let mut trie = Trie::<BTreeTransTable<char>>::default();
+    let mut trie = Trie::<BTreeTransTable<_>>::default();
     vocab.iter().for_each(|word| {
         trie.insert_iter(word.chars());
     });
 
-    let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
+    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
     let is_suffix = |word_slice: &str| vocab.iter().any(|word| word.ends_with(word_slice));
 
@@ -72,7 +71,7 @@ fn test_simple_trie_suffix() {
 fn test_topo_and_suf_len_sorted_order() {
     let mut rng = StdRng::seed_from_u64(1134759173975);
     for _ in 0..10000 {
-        let mut trie = Trie::<BTreeTransTable<u8>>::default();
+        let mut trie = Trie::<BTreeTransTable<_>>::default();
         for _ in 0..rng.gen_range(0..32) {
             let len = rng.gen_range(0..9);
             let string = Alphanumeric.sample_string(&mut rng, len);

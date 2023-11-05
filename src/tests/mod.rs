@@ -1,4 +1,4 @@
-use crate::{GeneralSAM, BTreeTransTable};
+use crate::{BTreeTransTable, GeneralSAM};
 
 #[cfg(feature = "utils")]
 mod utils;
