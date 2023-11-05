@@ -31,6 +31,17 @@ jobs:
       - run: cargo build-all-features --verbose
       - run: cargo test-all-features --verbose
 
+  rustfmt:
+    name: Check Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: rustup update stable && rustup default stable
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all -- --check
+
   build_docs:
     name: Docs
     runs-on: ubuntu-latest
