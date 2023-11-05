@@ -6,6 +6,18 @@ use crate::{GeneralSAM, GeneralSAMState, TransitionTable, TrieNodeAlike};
 
 use super::suffixwise::SuffixInTrieData;
 
+/// Greedy tokenizer with a general suffix automaton of the vocabulary.
+///
+/// Assuming that the input length is $n$, the maximum word length is $l$,
+/// and querying transitions in the trie takes $\mathcal{O}\left(\log{\Sigma}\right)$ time,
+/// then the overall time complexity of this implementation is
+/// $\mathcal{O}\left( n \cdot \left( \log{l} + \log{\Sigma} \right) \right)$.
+///
+/// The main optimization is to store suffix-wise information with persistent ropes.
+/// For each suffix in a state of the suffix automaton,
+/// the longest word matching the prefix of the suffix is stored in the rope.
+/// And the information stored in a state
+/// will be further merged in the ropes of its successors.
 pub struct GreedyTokenizer<
     's,
     TransTable: TransitionTable,
@@ -117,6 +129,12 @@ pub mod trie {
         }
     }
 
+    /// Greedy tokenizer with a trie of the vocabulary.
+    ///
+    /// Assuming that the input length is $n$, the maximum word length is $l$,
+    /// and querying transitions in the trie takes $\mathcal{O}\left(\log{\Sigma}\right)$ time,
+    /// then the overall time complexity of this implementation is
+    /// $\mathcal{O}\left( n \cdot l \cdot \log{\Sigma} \right)$.
     pub fn greedy_tokenize_with_trie<
         TransTable: TransitionTable,
         Iter: Iterator<Item = TransTable::KeyType>,
