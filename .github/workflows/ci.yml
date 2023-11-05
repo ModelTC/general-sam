@@ -50,4 +50,4 @@ jobs:
         with:
           fetch-depth: 0
       - run: rustup update nightly && rustup default nightly
-      - run: RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
+      - run: RUSTDOCFLAGS="--cfg doc_cfg --html-in-header ./docs-header.html" cargo +nightly doc --all-features --no-deps

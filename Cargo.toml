@@ -34,9 +34,9 @@ harness = false
 required-features = ["all"]
 
 [package.metadata.docs.rs]
-# RUSTDOCFLAGS="--cfg doc_cfg" cargo +nightly doc --all-features
+# RUSTDOCFLAGS="--cfg doc_cfg --html-in-header ./docs-header.html" cargo +nightly doc --all-features --no-deps
 all-features = true
-rustdoc-args = ["--cfg", "doc_cfg"]
+rustdoc-args = ["--cfg", "doc_cfg", "--html-in-header", "./docs-header.html"]
 
 [package.metadata.cargo-all-features]
 skip_optional_dependencies = true
