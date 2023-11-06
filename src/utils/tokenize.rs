@@ -120,10 +120,10 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 pub mod trie {
     use crate::{GeneralSAM, TransitionTable, Trie, TrieNodeAlike, TrieNodeID, TrieState};
 
-    impl<'s, TransTable: TransitionTable> super::GreedyTokenizer<'s, TransTable, TrieNodeID> {
+    impl<'s, 't, TransTable: TransitionTable> super::GreedyTokenizer<'s, TransTable, TrieNodeID> {
         pub fn build_from_trie<TT: TransitionTable<KeyType = TransTable::KeyType>>(
             sam: &'s GeneralSAM<TransTable>,
-            trie_state: TrieState<'s, TT>,
+            trie_state: TrieState<'t, TT>,
         ) -> Self {
             Self::build(sam, trie_state, |tn| tn.node_id)
         }
