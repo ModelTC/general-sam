@@ -104,7 +104,10 @@ pub use {
         GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
         SAM_ROOT_NODE_ID,
     },
-    table::{BTreeTransTable, ConstructiveTransitionTable, TransitionTable},
+    table::{
+        BTreeTransTable, BoxBisectTable, ConstructiveTransitionTable, HashTransTable,
+        SmallAlphabet, TransitionTable, VecBisectTable, WholeAlphabetTable,
+    },
     trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike},
 };
 
@@ -120,7 +123,7 @@ pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROO
 pub mod utils;
 #[cfg(feature = "utils")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "utils")))]
-pub use utils::{rope, suffixwise, tokenize};
+pub use utils::{rope, suffixwise, tokenize, tokenize::GreedyTokenizer};
 
 #[cfg(test)]
 mod tests;
