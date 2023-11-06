@@ -16,7 +16,26 @@
   integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
   crossorigin="anonymous"
 ></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/mermaid@10.6.0/dist/mermaid.min.js"
+  integrity="sha256-vaQqBFvghaWMX0hbXlHsEQCo9C1Xn8QsBGel6kT3X7E="
+  crossorigin="anonymous"
+></script>
 <script>
+  // the mermaid part is from https://github.com/rust-lang/mdBook/issues/762
+
+  function patchMermaidCodeElementClass() {
+    var elements = document.getElementsByClassName("language-mermaid");
+    Array.from(elements).forEach((pre) => {
+      Array.from(pre.childNodes).forEach((code) => {
+        if (code.tagName.toLowerCase() == "code") {
+          code.className = "mermaid";
+        }
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     renderMathInElement(document.body, {
       delimiters: [
@@ -27,5 +46,8 @@
       ],
       throwOnError: false,
     });
+
+    patchMermaidCodeElementClass();
+    mermaid.initialize({ startOnLoad: true });
   });
 </script>
