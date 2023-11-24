@@ -18,6 +18,7 @@ use super::suffixwise::SuffixInTrieData;
 /// the longest word matching the prefix of the suffix is stored in the rope.
 /// And the information stored in a state
 /// will be further merged in the ropes of its successors.
+#[derive(Clone, Debug)]
 pub struct GreedyTokenizer<
     's,
     TransTable: TransitionTable,

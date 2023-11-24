@@ -13,7 +13,7 @@ pub type GeneralSAMNodeID = usize;
 pub const SAM_NIL_NODE_ID: GeneralSAMNodeID = 0;
 pub const SAM_ROOT_NODE_ID: GeneralSAMNodeID = 1;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct GeneralSAMNode<TransTable: TransitionTable> {
     trans: TransTable,
     accept: bool,
@@ -22,7 +22,7 @@ pub struct GeneralSAMNode<TransTable: TransitionTable> {
 }
 
 /// A general suffix automaton.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct GeneralSAM<TransTable: TransitionTable> {
     node_pool: Vec<GeneralSAMNode<TransTable>>,
     topo_and_suf_len_sorted_order: Vec<GeneralSAMNodeID>,
