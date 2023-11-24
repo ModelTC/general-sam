@@ -8,6 +8,7 @@ use std::{
 
 use crate::GeneralSAMNodeID;
 
+#[derive(Clone, Debug)]
 pub struct WithKeyDerefedIter<
     'a,
     KeyType: 'a + Clone,
@@ -26,6 +27,7 @@ impl<'a, KeyType: 'a + Clone, IterType: Iterator<Item = (&'a KeyType, &'a Genera
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct TransitionIter<
     'a,
     KeyType: 'a,
@@ -180,6 +182,7 @@ fn bisect_unstable<K: Ord, V, C: AsRef<[(K, V)]>>(container: C, key: &K) -> Opti
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct BisectTable<
     K: Clone + Ord,
     C: AsRef<[(K, GeneralSAMNodeID)]>
@@ -190,6 +193,7 @@ pub struct BisectTable<
     phantom: PhantomData<K>,
 }
 
+#[derive(Clone, Debug)]
 pub struct BisectTableIter<'s, K: Clone + Ord> {
     inner: core::slice::Iter<'s, (K, GeneralSAMNodeID)>,
 }
@@ -265,7 +269,7 @@ impl SmallAlphabet for u8 {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WholeAlphabetTable<
     K: SmallAlphabet,
     C: AsRef<[Option<GeneralSAMNodeID>]>
@@ -277,6 +281,7 @@ pub struct WholeAlphabetTable<
     phantom: PhantomData<K>,
 }
 
+#[derive(Clone, Debug)]
 pub struct WholeAlphabetTableIter<'s, K: SmallAlphabet> {
     inner: std::iter::Enumerate<core::slice::Iter<'s, Option<GeneralSAMNodeID>>>,
     phantom: PhantomData<K>,

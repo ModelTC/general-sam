@@ -6,19 +6,19 @@ pub type TrieNodeID = GeneralSAMNodeID;
 pub const TRIE_NIL_NODE_ID: TrieNodeID = 0;
 pub const TRIE_ROOT_NODE_ID: TrieNodeID = 1;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TrieNode<TransTable: TransitionTable> {
     trans: TransTable,
     parent: TrieNodeID,
     pub accept: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Trie<TransTable: TransitionTable> {
     node_pool: Vec<TrieNode<TransTable>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TrieState<'s, TransTable: TransitionTable> {
     pub trie: &'s Trie<TransTable>,
     pub node_id: TrieNodeID,
@@ -172,7 +172,7 @@ impl<'s, TransTable: TransitionTable> TrieState<'s, TransTable> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NextTrieStateIter<'s, TransTable: TransitionTable> {
     state: TrieState<'s, TransTable>,
     iter: TransTable::IterType<'s>,

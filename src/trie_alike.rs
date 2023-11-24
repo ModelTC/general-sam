@@ -79,13 +79,14 @@ pub trait TrieNodeAlike {
 /// This struct implements `TrieNodeAlike` for any iterator.
 ///
 /// It can be used to construct a suffix automaton directly from a sequence.
+#[derive(Clone, Debug)]
 pub struct IterAsChain<Iter: Iterator> {
-    iter: Iter,
-    val: Option<Iter::Item>,
+    pub iter: Iter,
+    pub val: Option<Iter::Item>,
 }
 
 pub struct IterAsChainNextStateIter<Iter: Iterator> {
-    state: Option<IterAsChain<Iter>>,
+    pub state: Option<IterAsChain<Iter>>,
 }
 
 impl<Iter: Iterator> From<Iter> for IterAsChain<Iter> {
