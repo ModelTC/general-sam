@@ -3,6 +3,7 @@
 
 use std::collections::VecDeque;
 
+#[derive(Clone, Debug)]
 pub enum TravelEvent<'s, NodeType, ExtraType, KeyType> {
     PushRoot(NodeType),
     Push(NodeType, &'s ExtraType, KeyType),

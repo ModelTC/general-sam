@@ -137,7 +137,7 @@ impl<Digested: Clone> SuffixInTrieData<Digested> {
     ) -> Vec<Self> {
         let mut sam_to_data = vec![LinkedList::<SuffixInTrie<Digested>>::new(); sam.num_of_nodes()];
         let callback =
-            |event: TravelEvent<(&GeneralSAMState<_>, &TN), _, _>| -> Result<_, Infallible> {
+            |event: TravelEvent<(&GeneralSAMState<_, &GeneralSAM<_>>, &TN), _, _>| -> Result<_, Infallible> {
                 match event {
                     crate::TravelEvent::Pop((sam_state, trie_state), len) => {
                         if trie_state.is_accepting() {

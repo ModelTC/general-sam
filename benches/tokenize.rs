@@ -128,7 +128,7 @@ fn tokenize_with_hf(tokenizer: &HFTokenizer, seq: &str) -> Vec<u32> {
 }
 
 fn tokenize_with_sam<T: TransitionTable<KeyType = char>>(
-    tokenizer: &GreedyTokenizer<T, u32>,
+    tokenizer: &GreedyTokenizer<T, u32, &GeneralSAM<T>>,
     seq: &str,
 ) -> Vec<u32> {
     tokenizer

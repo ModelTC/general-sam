@@ -114,11 +114,14 @@ impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
         self.node_pool.get(node_id)
     }
 
-    pub fn get_root_state(&self) -> GeneralSAMState<TransTable> {
+    pub fn get_root_state(&self) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
 
-    pub fn get_state(&self, node_id: GeneralSAMNodeID) -> GeneralSAMState<TransTable> {
+    pub fn get_state(
+        &self,
+        node_id: GeneralSAMNodeID,
+    ) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
         if node_id < self.node_pool.len() {
             GeneralSAMState { sam: self, node_id }
         } else {

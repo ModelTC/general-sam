@@ -6,6 +6,7 @@ use rand::random;
 
 pub type NeedSwap = bool;
 
+#[derive(Clone, Debug)]
 pub enum SplitTo {
     Left,
     Right,
