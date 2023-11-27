@@ -1,37 +1,59 @@
 //! States of a general suffix automaton.
 
+use std::ops::Deref;
+
 use crate::{TravelEvent, TrieNodeAlike};
 
 use super::{GeneralSAM, GeneralSAMNode, TransitionTable, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
 
 #[derive(Debug)]
-pub struct GeneralSAMState<'s, TransTable: TransitionTable> {
-    pub sam: &'s GeneralSAM<TransTable>,
+pub struct GeneralSAMState<
+    TransTable: TransitionTable,
+    SAMRef: Deref<Target = GeneralSAM<TransTable>>,
+> {
+    pub sam: SAMRef,
     pub node_id: usize,
 }
 
-impl<'s, TransTable: TransitionTable> Clone for GeneralSAMState<'s, TransTable> {
+impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>> + Clone> Clone
+    for GeneralSAMState<TransTable, SAMRef>
+{
     fn clone(&self) -> Self {
         Self {
-            sam: self.sam,
+            sam: self.sam.clone(),
             node_id: self.node_id,
         }
     }
 }
 
-impl<'s, TransTable: TransitionTable<KeyType = u8>> GeneralSAMState<'s, TransTable> {
-    pub fn feed_bytes(self, seq: &'s str) -> Self {
+impl<TransTable: TransitionTable<KeyType = u8>, SAMRef: Deref<Target = GeneralSAM<TransTable>>>
+    GeneralSAMState<TransTable, SAMRef>
+{
+    pub fn feed_bytes(self, seq: &str) -> Self {
         self.feed_ref(seq.as_bytes())
     }
 }
 
-impl<'s, TransTable: TransitionTable<KeyType = char>> GeneralSAMState<'s, TransTable> {
+impl<
+        TransTable: TransitionTable<KeyType = char>,
+        SAMRef: Deref<Target = GeneralSAM<TransTable>>,
+    > GeneralSAMState<TransTable, SAMRef>
+{
     pub fn feed_chars(self, seq: &str) -> Self {
         self.feed(seq.chars())
     }
 }
 
-impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
+impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>>
+    GeneralSAMState<TransTable, SAMRef>
+{
+    pub fn inner_as_ref(&self) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
+        GeneralSAMState {
+            sam: &self.sam,
+            node_id: self.node_id,
+        }
+    }
+
     pub fn is_nil(&self) -> bool {
         self.node_id == SAM_NIL_NODE_ID
     }
@@ -46,10 +68,8 @@ impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
             .unwrap_or(false)
     }
 
-    pub fn get_non_nil_trans(&self, key: &TransTable::KeyType) -> Option<Self> {
-        self.get_node()
-            .and_then(|node| node.trans.get(key))
-            .map(|x| self.sam.get_state(*x))
+    pub fn get_sam_ref(&self) -> &GeneralSAM<TransTable> {
+        &self.sam
     }
 
     pub fn get_node(&self) -> Option<&GeneralSAMNode<TransTable>> {
@@ -86,17 +106,21 @@ impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
         }
         self
     }
-}
 
-impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
-    pub fn feed_ref<Seq: IntoIterator<Item = &'s TransTable::KeyType>>(self, seq: Seq) -> Self {
+    pub fn feed_ref<'s, Seq: IntoIterator<Item = &'s TransTable::KeyType>>(self, seq: Seq) -> Self
+    where
+        <TransTable as TransitionTable>::KeyType: 's,
+    {
         self.feed_ref_iter(seq.into_iter())
     }
 
-    pub fn feed_ref_iter<Iter: Iterator<Item = &'s TransTable::KeyType>>(
+    pub fn feed_ref_iter<'s, Iter: Iterator<Item = &'s TransTable::KeyType>>(
         mut self,
         iter: Iter,
-    ) -> Self {
+    ) -> Self
+    where
+        <TransTable as TransitionTable>::KeyType: 's,
+    {
         for t in iter {
             if self.is_nil() {
                 break;
@@ -105,21 +129,36 @@ impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
         }
         self
     }
+}
+
+impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>> + Clone>
+    GeneralSAMState<TransTable, SAMRef>
+{
+    pub fn get_non_nil_trans(&self, key: &TransTable::KeyType) -> Option<Self> {
+        self.get_node()
+            .and_then(|node| node.trans.get(key))
+            .map(|x| Self {
+                sam: self.sam.clone(),
+                node_id: *x,
+            })
+    }
 
     fn wrap_travel_along_callback<
+        's,
         TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
         ExtraType,
         ErrorType,
         F: 's
             + FnMut(
-                TravelEvent<(&GeneralSAMState<TransTable>, &TN), ExtraType, TN::InnerType>,
+                TravelEvent<(&Self, &TN), ExtraType, TN::InnerType>,
             ) -> Result<ExtraType, ErrorType>,
     >(
         &'s self,
         mut callback: F,
     ) -> impl FnMut(
-        TravelEvent<&TN, (GeneralSAMState<'s, TransTable>, ExtraType), TN::InnerType>,
-    ) -> Result<(GeneralSAMState<'s, TransTable>, ExtraType), ErrorType> {
+        TravelEvent<&TN, (Self, ExtraType), TN::InnerType>,
+    ) -> Result<(Self, ExtraType), ErrorType>
+           + 's {
         move |event| match event {
             TravelEvent::PushRoot(trie_root) => {
                 let res = callback(TravelEvent::PushRoot((self, trie_root)))?;
@@ -143,9 +182,7 @@ impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
         TN: TrieNodeAlike<InnerType = TransTable::KeyType> + Clone,
         ExtraType,
         ErrorType,
-        F: FnMut(
-            TravelEvent<(&GeneralSAMState<TransTable>, &TN), ErrorType, TN::InnerType>,
-        ) -> Result<ErrorType, ExtraType>,
+        F: FnMut(TravelEvent<(&Self, &TN), ErrorType, TN::InnerType>) -> Result<ErrorType, ExtraType>,
     >(
         &self,
         trie_node: TN,
@@ -158,9 +195,7 @@ impl<'s, TransTable: TransitionTable> GeneralSAMState<'s, TransTable> {
         TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
         ExtraType,
         ErrorType,
-        F: FnMut(
-            TravelEvent<(&GeneralSAMState<TransTable>, &TN), ErrorType, TN::InnerType>,
-        ) -> Result<ErrorType, ExtraType>,
+        F: FnMut(TravelEvent<(&Self, &TN), ErrorType, TN::InnerType>) -> Result<ErrorType, ExtraType>,
     >(
         &self,
         trie_node: TN,

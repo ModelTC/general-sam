@@ -1,5 +1,7 @@
 //! Trie, supporting `TrieNodeAlike`.
 
+use std::ops::Deref;
+
 use crate::{ConstructiveTransitionTable, GeneralSAMNodeID, TransitionTable, TrieNodeAlike};
 
 pub type TrieNodeID = GeneralSAMNodeID;
@@ -18,10 +20,21 @@ pub struct Trie<TransTable: TransitionTable> {
     node_pool: Vec<TrieNode<TransTable>>,
 }
 
-#[derive(Clone, Debug)]
-pub struct TrieState<'s, TransTable: TransitionTable> {
-    pub trie: &'s Trie<TransTable>,
+#[derive(Debug)]
+pub struct TrieState<TransTable: TransitionTable, TrieRef: Deref<Target = Trie<TransTable>>> {
+    pub trie: TrieRef,
     pub node_id: TrieNodeID,
+}
+
+impl<TransTable: TransitionTable, TrieRef: Deref<Target = Trie<TransTable>> + Clone> Clone
+    for TrieState<TransTable, TrieRef>
+{
+    fn clone(&self) -> Self {
+        Self {
+            trie: self.trie.clone(),
+            node_id: self.node_id,
+        }
+    }
 }
 
 impl<TransTable: ConstructiveTransitionTable> TrieNode<TransTable> {
@@ -70,7 +83,7 @@ impl<TransTable: TransitionTable> Trie<TransTable> {
         self.node_pool.len()
     }
 
-    pub fn get_state(&self, node_id: TrieNodeID) -> TrieState<TransTable> {
+    pub fn get_state(&self, node_id: TrieNodeID) -> TrieState<TransTable, &Trie<TransTable>> {
         if node_id >= self.node_pool.len() {
             return TrieState {
                 trie: self,
@@ -91,7 +104,7 @@ impl<TransTable: TransitionTable> Trie<TransTable> {
         self.get_node(TRIE_ROOT_NODE_ID).unwrap()
     }
 
-    pub fn get_root_state(&self) -> TrieState<TransTable> {
+    pub fn get_root_state(&self) -> TrieState<TransTable, &Trie<TransTable>> {
         self.get_state(TRIE_ROOT_NODE_ID)
     }
 
@@ -142,7 +155,16 @@ impl<TransTable: ConstructiveTransitionTable> Trie<TransTable> {
     }
 }
 
-impl<'s, TransTable: TransitionTable> TrieState<'s, TransTable> {
+impl<TransTable: TransitionTable, TrieRef: Deref<Target = Trie<TransTable>>>
+    TrieState<TransTable, TrieRef>
+{
+    pub fn inner_as_ref(&self) -> TrieState<TransTable, &Trie<TransTable>> {
+        TrieState {
+            trie: &self.trie,
+            node_id: self.node_id,
+        }
+    }
+
     pub fn is_nil(&self) -> bool {
         self.node_id == TRIE_NIL_NODE_ID
     }
@@ -151,7 +173,7 @@ impl<'s, TransTable: TransitionTable> TrieState<'s, TransTable> {
         self.node_id == TRIE_ROOT_NODE_ID
     }
 
-    pub fn get_node(&self) -> Option<&'s TrieNode<TransTable>> {
+    pub fn get_node(&self) -> Option<&TrieNode<TransTable>> {
         self.trie.get_node(self.node_id)
     }
 
@@ -170,15 +192,28 @@ impl<'s, TransTable: TransitionTable> TrieState<'s, TransTable> {
             self.node_id = TRIE_NIL_NODE_ID;
         }
     }
+
+    pub fn feed_iter<Iter: Iterator<Item = TransTable::KeyType>>(&mut self, iter: Iter) {
+        iter.for_each(|x| self.goto(&x));
+    }
+
+    pub fn feed_ref_iter<'s, Iter: Iterator<Item = &'s TransTable::KeyType>>(
+        &'s mut self,
+        iter: Iter,
+    ) {
+        iter.for_each(|x| self.goto(x));
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct NextTrieStateIter<'s, TransTable: TransitionTable> {
-    state: TrieState<'s, TransTable>,
+    trie: &'s Trie<TransTable>,
     iter: TransTable::IterType<'s>,
 }
 
-impl<'s, TransTable: TransitionTable> TrieNodeAlike for TrieState<'s, TransTable> {
+impl<'s, TransTable: TransitionTable> TrieNodeAlike
+    for TrieState<TransTable, &'s Trie<TransTable>>
+{
     type InnerType = TransTable::KeyType;
     type NextStateIter = NextTrieStateIter<'s, TransTable>;
 
@@ -187,23 +222,23 @@ impl<'s, TransTable: TransitionTable> TrieNodeAlike for TrieState<'s, TransTable
     }
 
     fn next_states(self) -> Self::NextStateIter {
-        let iter = self.get_node().unwrap().trans.iter();
-        NextTrieStateIter { state: self, iter }
+        let iter = self.trie.get_node(self.node_id).unwrap().trans.iter();
+        NextTrieStateIter {
+            trie: self.trie,
+            iter,
+        }
     }
 }
 
 impl<'s, TransTable: TransitionTable> Iterator for NextTrieStateIter<'s, TransTable> {
-    type Item = (TransTable::KeyType, TrieState<'s, TransTable>);
+    type Item = (
+        TransTable::KeyType,
+        TrieState<TransTable, &'s Trie<TransTable>>,
+    );
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()
-            .map(|(t, next_node_id)| (t.clone(), self.state.trie.get_state(*next_node_id)))
-    }
-}
-
-impl<'s, TransTable: TransitionTable> NextTrieStateIter<'s, TransTable> {
-    pub fn get_state(&self) -> &TrieState<TransTable> {
-        &self.state
+            .map(|(t, next_node_id)| (t.clone(), self.trie.get_state(*next_node_id)))
     }
 }

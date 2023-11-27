@@ -1,6 +1,6 @@
 //! Greedy tokenizer.
 
-use std::ops::{AddAssign, SubAssign};
+use std::ops::{AddAssign, Deref, SubAssign};
 
 use crate::{GeneralSAM, GeneralSAMState, TransitionTable, TrieNodeAlike};
 
@@ -20,28 +20,74 @@ use super::suffixwise::SuffixInTrieData;
 /// will be further merged in the ropes of its successors.
 #[derive(Clone, Debug)]
 pub struct GreedyTokenizer<
-    's,
     TransTable: TransitionTable,
     TokenIDType: Clone + Default + PartialEq,
+    SAMRef: Deref<Target = GeneralSAM<TransTable>>,
 > {
-    sam: &'s GeneralSAM<TransTable>,
+    sam: SAMRef,
     suffix_data: Vec<SuffixInTrieData<TokenIDType>>,
 }
 
-impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
-    GreedyTokenizer<'s, TransTable, TokenIDType>
+pub struct OwnedGeneralSAM<TransTable: TransitionTable> {
+    pub sam: GeneralSAM<TransTable>,
+}
+
+impl<TransTable: TransitionTable> Deref for OwnedGeneralSAM<TransTable> {
+    type Target = GeneralSAM<TransTable>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.sam
+    }
+}
+
+impl<TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
+    GreedyTokenizer<TransTable, TokenIDType, OwnedGeneralSAM<TransTable>>
 {
-    pub fn build<
+    pub fn build_from_sam<
         TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
         F: FnMut(&TN) -> TokenIDType,
     >(
-        sam: &'s GeneralSAM<TransTable>,
+        sam: GeneralSAM<TransTable>,
         trie_node: TN,
         f: F,
     ) -> Self {
         Self {
+            suffix_data: SuffixInTrieData::build(&sam, trie_node, f),
+            sam: OwnedGeneralSAM { sam },
+        }
+    }
+}
+
+impl<
+        TransTable: TransitionTable,
+        TokenIDType: Clone + Default + PartialEq,
+        SAMRef: Deref<Target = GeneralSAM<TransTable>>,
+    > GreedyTokenizer<TransTable, TokenIDType, SAMRef>
+{
+    pub fn get_sam_ref(&self) -> &GeneralSAM<TransTable> {
+        &self.sam
+    }
+
+    pub fn inner_as_ref(
+        &self,
+    ) -> GreedyTokenizer<TransTable, TokenIDType, &GeneralSAM<TransTable>> {
+        GreedyTokenizer {
+            sam: &self.sam,
+            suffix_data: self.suffix_data.clone(),
+        }
+    }
+
+    pub fn build<
+        TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
+        F: FnMut(&TN) -> TokenIDType,
+    >(
+        sam: SAMRef,
+        trie_node: TN,
+        f: F,
+    ) -> Self {
+        Self {
+            suffix_data: SuffixInTrieData::build(sam.deref(), trie_node, f),
             sam,
-            suffix_data: SuffixInTrieData::build(sam, trie_node, f),
         }
     }
 
@@ -62,22 +108,24 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
             res.push((token_id, token_len))
         };
 
-        let pop_buffer =
-            |cur_len: &mut usize, cur_state: &mut GeneralSAMState<TransTable>, res: &mut Vec<_>| {
-                let inner_data = self.suffix_data[cur_state.node_id]
-                    .get(*cur_len)
-                    .expect("invalid state");
+        let pop_buffer = |cur_len: &mut usize,
+                          cur_state: &mut GeneralSAMState<TransTable, &GeneralSAM<TransTable>>,
+                          res: &mut Vec<_>| {
+            let inner_data = self.suffix_data[cur_state.node_id]
+                .get(*cur_len)
+                .expect("invalid state");
 
-                // TODO: optimize for unknown token:
-                //       find the lower bound position where the suffix is prefixed with a token
-                let (token_id, token_len) = inner_data.as_ref().map_or_else(
-                    || (unk_token_id, 1),
-                    |token_info| (&token_info.digested_trie_node, token_info.seq_len),
-                );
+            // TODO: Optimize for unknown tokens:
+            // Find the lower bound position where the suffix is prefixed with a token.
+            // But this does not improve the time complexity, pending...
+            let (token_id, token_len) = inner_data.as_ref().map_or_else(
+                || (unk_token_id, 1),
+                |token_info| (&token_info.digested_trie_node, token_info.seq_len),
+            );
 
-                cur_len.sub_assign(token_len);
-                push(res, token_id.clone(), token_len);
-            };
+            cur_len.sub_assign(token_len);
+            push(res, token_id.clone(), token_len);
+        };
 
         let mut cur_state = self.sam.get_root_state();
         let mut cur_len = 0;
@@ -119,14 +167,31 @@ impl<'s, TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 #[cfg(feature = "trie")]
 #[cfg_attr(doc_cfg, doc(cfg(feature = "trie")))]
 pub mod trie {
+    use std::ops::Deref;
+
     use crate::{GeneralSAM, TransitionTable, Trie, TrieNodeAlike, TrieNodeID, TrieState};
 
-    impl<'s, TransTable: TransitionTable> super::GreedyTokenizer<'s, TransTable, TrieNodeID> {
-        pub fn build_from_trie<'t, TT: TransitionTable<KeyType = TransTable::KeyType>>(
-            sam: &'s GeneralSAM<TransTable>,
-            trie_state: TrieState<'t, TT>,
+    use super::OwnedGeneralSAM;
+
+    impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>>
+        super::GreedyTokenizer<TransTable, TrieNodeID, SAMRef>
+    {
+        pub fn build_from_trie<TT: TransitionTable<KeyType = TransTable::KeyType>>(
+            sam: SAMRef,
+            trie_state: TrieState<TT, &Trie<TT>>,
         ) -> Self {
             Self::build(sam, trie_state, |tn| tn.node_id)
+        }
+    }
+
+    impl<TransTable: TransitionTable>
+        super::GreedyTokenizer<TransTable, TrieNodeID, OwnedGeneralSAM<TransTable>>
+    {
+        pub fn build_from_sam_and_trie<TT: TransitionTable<KeyType = TransTable::KeyType>>(
+            sam: GeneralSAM<TransTable>,
+            trie_state: TrieState<TT, &Trie<TT>>,
+        ) -> Self {
+            Self::build_from_sam(sam, trie_state, |tn| tn.node_id)
         }
     }
 

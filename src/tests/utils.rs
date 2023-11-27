@@ -72,7 +72,7 @@ fn test_rope() {
 
 #[cfg(feature = "trie")]
 mod trie {
-    use std::collections::BTreeMap;
+    use std::{collections::BTreeMap, ops::Deref};
 
     use rand::{
         distributions::{Alphanumeric, DistString},
@@ -129,8 +129,9 @@ mod trie {
         T: Clone,
         TransTable: TransitionTable<KeyType = T>,
         Iter: Iterator<Item = T>,
+        SAMRef: Deref<Target = GeneralSAM<TransTable>>,
     >(
-        tokenizer: &GreedyTokenizer<TransTable, usize>,
+        tokenizer: &GreedyTokenizer<TransTable, usize, SAMRef>,
         trie: &Trie<TransTable>,
         seq: Iter,
     ) {
@@ -179,6 +180,32 @@ mod trie {
         let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
+
+        case_tokenizer(&tokenizer, &trie, "abcde".bytes());
+        case_tokenizer(&tokenizer, &trie, "abcdf".bytes());
+        case_tokenizer(&tokenizer, &trie, "abca".bytes());
+        case_tokenizer(&tokenizer, &trie, "Hi，你好吗？".bytes());
+        case_tokenizer(&tokenizer, &trie, "🧡🧡🧡🧡🧡！".bytes());
+        case_tokenizer(&tokenizer, &trie, "abc".bytes());
+    }
+
+    #[test]
+    fn test_tokenizer_owning_sam() {
+        let vocab = [
+            "a", "ab", "b", "bc", "c", "d", "e", "f", "cd", "abcde", "你好", "🧡",
+        ];
+        let mut trie = Trie::<BTreeTransTable<u8>>::default();
+        let mut id_to_word = BTreeMap::new();
+        for word in vocab {
+            id_to_word.insert(trie.insert_iter(word.bytes()), word);
+        }
+
+        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
+
+        let tokenizer = GreedyTokenizer::<BTreeTransTable<_>, _, _>::build_from_sam_and_trie(
+            sam,
+            trie.get_root_state(),
+        );
 
         case_tokenizer(&tokenizer, &trie, "abcde".bytes());
         case_tokenizer(&tokenizer, &trie, "abcdf".bytes());
