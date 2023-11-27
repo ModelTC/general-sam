@@ -64,8 +64,16 @@ impl<
         SAMRef: Deref<Target = GeneralSAM<TransTable>>,
     > GreedyTokenizer<TransTable, TokenIDType, SAMRef>
 {
+    pub fn get_sam(&self) -> &SAMRef {
+        &self.sam
+    }
+
     pub fn get_sam_ref(&self) -> &GeneralSAM<TransTable> {
         &self.sam
+    }
+
+    pub fn get_suffix_data(&self) -> &Vec<SuffixInTrieData<TokenIDType>> {
+        &self.suffix_data
     }
 
     pub fn inner_as_ref(
