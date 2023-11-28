@@ -28,6 +28,7 @@ pub struct GreedyTokenizer<
     suffix_data: Vec<SuffixInTrieData<TokenIDType>>,
 }
 
+#[derive(Clone, Debug)]
 pub struct OwnedGeneralSAM<TransTable: TransitionTable> {
     pub sam: GeneralSAM<TransTable>,
 }
