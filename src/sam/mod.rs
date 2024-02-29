@@ -123,12 +123,9 @@ impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
         node_id: GeneralSAMNodeID,
     ) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
         if node_id < self.node_pool.len() {
-            GeneralSAMState { sam: self, node_id }
+            GeneralSAMState::new(self, node_id)
         } else {
-            GeneralSAMState {
-                sam: self,
-                node_id: SAM_NIL_NODE_ID,
-            }
+            GeneralSAMState::new(self, SAM_NIL_NODE_ID)
         }
     }
 
