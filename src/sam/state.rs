@@ -1,32 +1,31 @@
 //! States of a general suffix automaton.
 
-use std::ops::Deref;
+use std::{borrow::Borrow, marker::PhantomData};
 
 use crate::{TravelEvent, TrieNodeAlike};
 
 use super::{GeneralSAM, GeneralSAMNode, TransitionTable, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
 
 #[derive(Debug)]
-pub struct GeneralSAMState<
-    TransTable: TransitionTable,
-    SAMRef: Deref<Target = GeneralSAM<TransTable>>,
-> {
+pub struct GeneralSAMState<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>> {
     pub sam: SAMRef,
     pub node_id: usize,
+    phantom: PhantomData<TransTable>,
 }
 
-impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>> + Clone> Clone
+impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>> + Clone> Clone
     for GeneralSAMState<TransTable, SAMRef>
 {
     fn clone(&self) -> Self {
         Self {
             sam: self.sam.clone(),
             node_id: self.node_id,
+            phantom: PhantomData,
         }
     }
 }
 
-impl<TransTable: TransitionTable<KeyType = u8>, SAMRef: Deref<Target = GeneralSAM<TransTable>>>
+impl<TransTable: TransitionTable<KeyType = u8>, SAMRef: Borrow<GeneralSAM<TransTable>>>
     GeneralSAMState<TransTable, SAMRef>
 {
     pub fn feed_bytes(self, seq: &str) -> Self {
@@ -34,23 +33,30 @@ impl<TransTable: TransitionTable<KeyType = u8>, SAMRef: Deref<Target = GeneralSA
     }
 }
 
-impl<
-        TransTable: TransitionTable<KeyType = char>,
-        SAMRef: Deref<Target = GeneralSAM<TransTable>>,
-    > GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable<KeyType = char>, SAMRef: Borrow<GeneralSAM<TransTable>>>
+    GeneralSAMState<TransTable, SAMRef>
 {
     pub fn feed_chars(self, seq: &str) -> Self {
         self.feed(seq.chars())
     }
 }
 
-impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>>
+impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>>
     GeneralSAMState<TransTable, SAMRef>
 {
+    pub fn new(sam: SAMRef, node_id: usize) -> Self {
+        Self {
+            sam,
+            node_id,
+            phantom: PhantomData,
+        }
+    }
+
     pub fn inner_as_ref(&self) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
         GeneralSAMState {
-            sam: &self.sam,
+            sam: self.sam.borrow(),
             node_id: self.node_id,
+            phantom: PhantomData,
         }
     }
 
@@ -69,11 +75,11 @@ impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>
     }
 
     pub fn get_sam_ref(&self) -> &GeneralSAM<TransTable> {
-        &self.sam
+        self.sam.borrow()
     }
 
     pub fn get_node(&self) -> Option<&GeneralSAMNode<TransTable>> {
-        self.sam.get_node(self.node_id)
+        self.sam.borrow().get_node(self.node_id)
     }
 
     pub fn goto_suffix_parent(&mut self) {
@@ -131,7 +137,7 @@ impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>
     }
 }
 
-impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>> + Clone>
+impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>> + Clone>
     GeneralSAMState<TransTable, SAMRef>
 {
     pub fn get_non_nil_trans(&self, key: &TransTable::KeyType) -> Option<Self> {
@@ -140,6 +146,7 @@ impl<TransTable: TransitionTable, SAMRef: Deref<Target = GeneralSAM<TransTable>>
             .map(|x| Self {
                 sam: self.sam.clone(),
                 node_id: *x,
+                phantom: PhantomData,
             })
     }
 
