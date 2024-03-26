@@ -9,7 +9,7 @@ homepage = "https://github.com/ModelTC/general-sam"
 documentation = "https://docs.rs/general-sam"
 readme = "README.md"
 authors = ["Chielo Newctle <ChieloNewctle@gmail.com>"]
-exclude = ["release-plz.toml"]
+exclude = ["release-plz.toml", ".github"]
 
 [lib]
 name = "general_sam"
