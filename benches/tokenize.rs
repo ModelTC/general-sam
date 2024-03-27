@@ -4,7 +4,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use general_sam::{
     table::{BoxBisectTable, HashTransTable, VecBisectTable},
     tokenize::{trie::greedy_tokenize_with_trie, GreedyTokenizer},
-    BTreeTransTable, GeneralSAM, TransitionTable, Trie,
+    BTreeTransTable, GeneralSam, TransitionTable, Trie,
 };
 use rand::{
     distributions::{Alphanumeric, DistString},
@@ -128,7 +128,7 @@ fn tokenize_with_hf(tokenizer: &HFTokenizer, seq: &str) -> Vec<u32> {
 }
 
 fn tokenize_with_sam<T: TransitionTable<KeyType = char>>(
-    tokenizer: &GreedyTokenizer<T, u32, &GeneralSAM<T>>,
+    tokenizer: &GreedyTokenizer<T, u32, &GeneralSam<T>>,
     seq: &str,
 ) -> Vec<u32> {
     tokenizer
@@ -153,7 +153,7 @@ fn build_trie<T: TransitionTable<KeyType = char>>(vocab: &Vocab) -> (Trie<T>, Ve
     let mut trie = Trie::<BTreeTransTable<_>>::default();
     let mut trie_id_and_token_id = Vec::new();
     for (k, v) in vocab.iter() {
-        let node_id = trie.insert_iter(k.chars());
+        let node_id = trie.insert_chars(k);
         trie_id_and_token_id.push((node_id, *v));
     }
     let mut trie_to_token = vec![0; trie.num_of_nodes()];
@@ -178,7 +178,7 @@ fn criterion_benchmark<TransTable: TransitionTable<KeyType = char>>(c: &mut Crit
     println!("building trie...");
     let (trie, trie_to_token) = build_trie::<TransTable>(&vocab);
     println!("building sam...");
-    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state())
+    let sam = GeneralSam::<BTreeTransTable<_>>::from_trie(trie.get_root_state())
         .alter_trans_table_into::<TransTable>();
     println!("building greedy tokenizer...");
     let tokenizer =

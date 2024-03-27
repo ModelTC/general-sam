@@ -37,9 +37,9 @@ flowchart LR
 ## Examples
 
 ```rust
-use general_sam::{GeneralSAM, BTreeTransTable};
+use general_sam::{GeneralSam, BTreeTransTable};
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::from_bytes("abcbc");
+let sam = GeneralSam::<BTreeTransTable<_>>::from_bytes("abcbc");
 
 // "cbc" is a suffix of "abcbc"
 assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
@@ -49,38 +49,38 @@ assert!(!sam.get_root_state().feed_bytes("bcb").is_accepting());
 ```
 
 ```rust
-use general_sam::{GeneralSAM, BTreeTransTable};
+use general_sam::{GeneralSam, BTreeTransTable};
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::from_chars("abcbc".chars());
+let sam = GeneralSam::<BTreeTransTable<_>>::from_chars("abcbc");
 
-let state = sam.get_root_state();
+let mut state = sam.get_root_state();
 
 // "b" is not a suffix but at least a substring of "abcbc"
-let state = state.feed_chars("b");
+state.feed_chars("b");
 assert!(!state.is_accepting());
 
 // "bc" is a suffix of "abcbc"
-let state = state.feed_chars("c");
+state.feed_chars("c");
 assert!(state.is_accepting());
 
 // "bcbc" is a suffix of "abcbc"
-let state = state.feed_chars("bc");
+state.feed_chars("bc");
 assert!(state.is_accepting());
 
 // "bcbcbc" is not a substring, much less a suffix of "abcbc"
-let state = state.feed_chars("bc");
+state.feed_chars("bc");
 assert!(!state.is_accepting() && state.is_nil());
 ```
 
 ```rust
-// NOTE: This example requires the `trie` feature.
-use general_sam::{GeneralSAM, Trie, BTreeTransTable};
+# #[cfg(feature = "trie")] {
+use general_sam::{GeneralSam, Trie, BTreeTransTable};
 
 let mut trie = Trie::<BTreeTransTable<_>>::default();
-trie.insert_iter("hello".chars());
-trie.insert_iter("Chielo".chars());
+trie.insert("hello".chars());
+trie.insert("Chielo".chars());
 
-let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
+let sam = GeneralSam::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
 assert!(sam.get_root_state().feed_chars("lo").is_accepting());
 assert!(sam.get_root_state().feed_chars("ello").is_accepting());
@@ -91,6 +91,7 @@ assert!(!sam.get_root_state().feed_chars("el").is_nil());
 
 assert!(!sam.get_root_state().feed_chars("bye").is_accepting());
 assert!(sam.get_root_state().feed_chars("bye").is_nil());
+# }
 ```
 
 ## References

@@ -4,7 +4,7 @@ use std::{collections::LinkedList, convert::Infallible, ops::Deref};
 
 use crate::{
     rope::{Rope, RopeBase, RopeData, RopeUntaggedInner, TreapBasedRopeBase},
-    GeneralSAM, GeneralSAMState, TransitionTable, TravelEvent, TrieNodeAlike, SAM_NIL_NODE_ID,
+    GeneralSam, GeneralSamState, TransitionTable, TravelEvent, TrieNodeAlike, SAM_NIL_NODE_ID,
     SAM_ROOT_NODE_ID,
 };
 
@@ -60,17 +60,17 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
 
     pub fn build_from_sam<
         TransTable: TransitionTable,
-        Iter: Iterator<Item = (usize, Inner)>,
+        Iter: IntoIterator<Item = (usize, Inner)>,
         FInit: FnMut(usize) -> Iter,
     >(
-        sam: &GeneralSAM<TransTable>,
+        sam: &GeneralSam<TransTable>,
         mut f_init: FInit,
     ) -> Vec<Self> {
         let mut res = vec![Self::default(); sam.num_of_nodes()];
         for node_id in sam.get_topo_and_suf_len_sorted_node_ids().iter().copied() {
             assert_ne!(node_id, SAM_NIL_NODE_ID);
 
-            let node = sam.get_node(node_id).expect("invalid GeneralSAM");
+            let node = sam.get_node(node_id).expect("invalid GeneralSam");
             let node_data = res
                 .get_mut(node_id)
                 .unwrap_or_else(|| panic!("invalid node id: {}", node_id));
@@ -83,7 +83,7 @@ impl<Inner: RopeData + Default> SuffixwiseData<Inner> {
                 node_data.data = Rope::new(Inner::default());
             } else {
                 let parent_id = node.get_suffix_parent_id();
-                let parent = sam.get_node(parent_id).expect("invalid GeneralSAM");
+                let parent = sam.get_node(parent_id).expect("invalid GeneralSam");
 
                 node_data.min_suf_len = parent.max_suffix_len() + 1;
 
@@ -131,13 +131,13 @@ impl<Digested: Clone> SuffixInTrieData<Digested> {
         TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
         F: FnMut(&TN) -> Digested,
     >(
-        sam: &GeneralSAM<TransTable>,
+        sam: &GeneralSam<TransTable>,
         trie_node: TN,
         mut f: F,
     ) -> Vec<Self> {
         let mut sam_to_data = vec![LinkedList::<SuffixInTrie<Digested>>::new(); sam.num_of_nodes()];
         let callback =
-            |event: TravelEvent<(&GeneralSAMState<_, &GeneralSAM<_>>, &TN), _, _>| -> Result<_, Infallible> {
+            |event: TravelEvent<(&GeneralSamState<_, &GeneralSam<_>>, &TN), _, _>| -> Result<_, Infallible> {
                 match event {
                     crate::TravelEvent::Pop((sam_state, trie_state), len) => {
                         if trie_state.is_accepting() {

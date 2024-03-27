@@ -1,7 +1,7 @@
 //! A general suffix automaton implementation.
 
 mod state;
-pub use state::GeneralSAMState;
+pub use state::GeneralSamState;
 
 use std::convert::Infallible;
 
@@ -9,27 +9,27 @@ use crate::{
     ConstructiveTransitionTable, IterAsChain, TransitionTable, TravelEvent, TrieNodeAlike,
 };
 
-pub type GeneralSAMNodeID = usize;
-pub const SAM_NIL_NODE_ID: GeneralSAMNodeID = 0;
-pub const SAM_ROOT_NODE_ID: GeneralSAMNodeID = 1;
+pub type GeneralSamNodeID = usize;
+pub const SAM_NIL_NODE_ID: GeneralSamNodeID = 0;
+pub const SAM_ROOT_NODE_ID: GeneralSamNodeID = 1;
 
 #[derive(Clone, Debug)]
-pub struct GeneralSAMNode<TransTable: TransitionTable> {
+pub struct GeneralSamNode<TransTable: TransitionTable> {
     trans: TransTable,
     accept: bool,
     len: usize,
-    link: GeneralSAMNodeID,
+    link: GeneralSamNodeID,
 }
 
 /// A general suffix automaton.
 #[derive(Clone, Debug)]
-pub struct GeneralSAM<TransTable: TransitionTable> {
-    node_pool: Vec<GeneralSAMNode<TransTable>>,
-    topo_and_suf_len_sorted_order: Vec<GeneralSAMNodeID>,
+pub struct GeneralSam<TransTable: TransitionTable> {
+    node_pool: Vec<GeneralSamNode<TransTable>>,
+    topo_and_suf_len_sorted_order: Vec<GeneralSamNodeID>,
 }
 
-impl<TransTable: ConstructiveTransitionTable> GeneralSAMNode<TransTable> {
-    fn new(accept: bool, len: usize, link: GeneralSAMNodeID) -> Self {
+impl<TransTable: ConstructiveTransitionTable> GeneralSamNode<TransTable> {
+    fn new(accept: bool, len: usize, link: GeneralSamNodeID) -> Self {
         Self {
             trans: Default::default(),
             accept,
@@ -39,7 +39,7 @@ impl<TransTable: ConstructiveTransitionTable> GeneralSAMNode<TransTable> {
     }
 }
 
-impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
+impl<TransTable: TransitionTable> GeneralSamNode<TransTable> {
     pub fn is_accepting(&self) -> bool {
         self.accept
     }
@@ -48,7 +48,7 @@ impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
         self.len
     }
 
-    pub fn get_suffix_parent_id(&self) -> GeneralSAMNodeID {
+    pub fn get_suffix_parent_id(&self) -> GeneralSamNodeID {
         self.link
     }
 
@@ -58,8 +58,8 @@ impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
 
     fn alter_trans_table<NewTableType: TransitionTable<KeyType = TransTable::KeyType>>(
         &self,
-    ) -> GeneralSAMNode<NewTableType> {
-        GeneralSAMNode {
+    ) -> GeneralSamNode<NewTableType> {
+        GeneralSamNode {
             trans: NewTableType::from_kv_iter(self.trans.iter()),
             accept: self.accept,
             len: self.len,
@@ -68,78 +68,78 @@ impl<TransTable: TransitionTable> GeneralSAMNode<TransTable> {
     }
 }
 
-impl<TransTable: ConstructiveTransitionTable<KeyType = u8>> GeneralSAM<TransTable> {
+impl<TransTable: ConstructiveTransitionTable<KeyType = u8>> GeneralSam<TransTable> {
     pub fn from_bytes<S: AsRef<[u8]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::from_trie(iter)
     }
 }
 
-impl<TransTable: ConstructiveTransitionTable<KeyType = u32>> GeneralSAM<TransTable> {
+impl<TransTable: ConstructiveTransitionTable<KeyType = u32>> GeneralSam<TransTable> {
     pub fn from_utf32<S: AsRef<[u32]>>(s: S) -> Self {
         let iter = IterAsChain::from(s.as_ref().iter().copied());
         Self::from_trie(iter)
     }
 }
 
-impl<TransTable: ConstructiveTransitionTable<KeyType = char>> GeneralSAM<TransTable> {
-    pub fn from_chars<S: Iterator<Item = char>>(s: S) -> Self {
-        let iter = IterAsChain::from(s);
+impl<TransTable: ConstructiveTransitionTable<KeyType = char>> GeneralSam<TransTable> {
+    pub fn from_chars<S: AsRef<str>>(s: S) -> Self {
+        let iter = IterAsChain::from(s.as_ref().chars());
         Self::from_trie(iter)
     }
 }
 
-impl<TransTable: ConstructiveTransitionTable> Default for GeneralSAM<TransTable> {
+impl<TransTable: ConstructiveTransitionTable> Default for GeneralSam<TransTable> {
     fn default() -> Self {
         Self {
             node_pool: vec![
-                GeneralSAMNode::new(false, 0, SAM_NIL_NODE_ID),
-                GeneralSAMNode::new(true, 0, SAM_NIL_NODE_ID),
+                GeneralSamNode::new(false, 0, SAM_NIL_NODE_ID),
+                GeneralSamNode::new(true, 0, SAM_NIL_NODE_ID),
             ],
             topo_and_suf_len_sorted_order: Default::default(),
         }
     }
 }
 
-impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
+impl<TransTable: TransitionTable> GeneralSam<TransTable> {
     pub fn num_of_nodes(&self) -> usize {
         self.node_pool.len()
     }
 
-    pub fn get_root_node(&self) -> &GeneralSAMNode<TransTable> {
+    pub fn get_root_node(&self) -> &GeneralSamNode<TransTable> {
         self.get_node(SAM_ROOT_NODE_ID).unwrap()
     }
 
-    pub fn get_node(&self, node_id: GeneralSAMNodeID) -> Option<&GeneralSAMNode<TransTable>> {
+    pub fn get_node(&self, node_id: GeneralSamNodeID) -> Option<&GeneralSamNode<TransTable>> {
         self.node_pool.get(node_id)
     }
 
-    pub fn get_root_state(&self) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
+    pub fn get_root_state(&self) -> GeneralSamState<TransTable, &GeneralSam<TransTable>> {
         self.get_state(SAM_ROOT_NODE_ID)
     }
 
     pub fn get_state(
         &self,
-        node_id: GeneralSAMNodeID,
-    ) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
+        node_id: GeneralSamNodeID,
+    ) -> GeneralSamState<TransTable, &GeneralSam<TransTable>> {
         if node_id < self.node_pool.len() {
-            GeneralSAMState::new(self, node_id)
+            GeneralSamState::new(self, node_id)
         } else {
-            GeneralSAMState::new(self, SAM_NIL_NODE_ID)
+            GeneralSamState::new(self, SAM_NIL_NODE_ID)
         }
     }
 
     /// Returns topological sorted, maximum suffix length sorted
     /// and suffix parent depth sorted node id sequence,
     /// which is generated by topological sorting with a queue.
-    pub fn get_topo_and_suf_len_sorted_node_ids(&self) -> &Vec<GeneralSAMNodeID> {
+    pub fn get_topo_and_suf_len_sorted_node_ids(&self) -> &Vec<GeneralSamNodeID> {
         &self.topo_and_suf_len_sorted_order
     }
 
     pub fn alter_trans_table<NewTableType: TransitionTable<KeyType = TransTable::KeyType>>(
         &self,
-    ) -> GeneralSAM<NewTableType> {
-        GeneralSAM {
+    ) -> GeneralSam<NewTableType> {
+        GeneralSam {
             node_pool: self
                 .node_pool
                 .iter()
@@ -151,8 +151,8 @@ impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
 
     pub fn alter_trans_table_into<NewTableType: TransitionTable<KeyType = TransTable::KeyType>>(
         self,
-    ) -> GeneralSAM<NewTableType> {
-        GeneralSAM {
+    ) -> GeneralSam<NewTableType> {
+        GeneralSam {
             node_pool: self
                 .node_pool
                 .iter()
@@ -163,7 +163,7 @@ impl<TransTable: TransitionTable> GeneralSAM<TransTable> {
     }
 }
 
-impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
+impl<TransTable: ConstructiveTransitionTable> GeneralSam<TransTable> {
     pub fn from_trie<TN: TrieNodeAlike>(node: TN) -> Self
     where
         TN::InnerType: Into<TransTable::KeyType>,
@@ -185,7 +185,7 @@ impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
     where
         TN::InnerType: Into<TransTable::KeyType>,
     {
-        node.bfs_travel(|event| -> Result<GeneralSAMNodeID, Infallible> {
+        node.bfs_travel(|event| -> Result<GeneralSamNodeID, Infallible> {
             match event {
                 TravelEvent::PushRoot(_) => Ok(SAM_ROOT_NODE_ID),
                 TravelEvent::Push(cur_tn, cur_node_id, key) => {
@@ -235,7 +235,7 @@ impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
         self.node_pool[SAM_NIL_NODE_ID].accept = false;
     }
 
-    fn alloc_node(&mut self, node: GeneralSAMNode<TransTable>) -> GeneralSAMNodeID {
+    fn alloc_node(&mut self, node: GeneralSamNode<TransTable>) -> GeneralSamNodeID {
         let id = self.node_pool.len();
         self.node_pool.push(node);
         id
@@ -243,15 +243,15 @@ impl<TransTable: ConstructiveTransitionTable> GeneralSAM<TransTable> {
 
     fn insert_node_trans<Key: Into<TransTable::KeyType>>(
         &mut self,
-        last_node_id: GeneralSAMNodeID,
+        last_node_id: GeneralSamNodeID,
         key: Key,
         accept: bool,
-    ) -> GeneralSAMNodeID {
+    ) -> GeneralSamNodeID {
         let key: TransTable::KeyType = key.into();
 
         let new_node_id = {
             let last_node = &self.node_pool[last_node_id];
-            self.alloc_node(GeneralSAMNode::new(
+            self.alloc_node(GeneralSamNode::new(
                 accept,
                 last_node.len + 1,
                 SAM_NIL_NODE_ID,
