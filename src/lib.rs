@@ -27,9 +27,9 @@
 //! # Examples
 //!
 //! ```rust
-//! use general_sam::{GeneralSAM, BTreeTransTable};
+//! use general_sam::{GeneralSam, BTreeTransTable};
 //!
-//! let sam = GeneralSAM::<BTreeTransTable<_>>::from_bytes("abcbc");
+//! let sam = GeneralSam::<BTreeTransTable<_>>::from_bytes("abcbc");
 //!
 //! // "cbc" is a suffix of "abcbc"
 //! assert!(sam.get_root_state().feed_bytes("cbc").is_accepting());
@@ -39,38 +39,38 @@
 //! ```
 //!
 //! ```rust
-//! use general_sam::{GeneralSAM, BTreeTransTable};
+//! use general_sam::{GeneralSam, BTreeTransTable};
 //!
-//! let sam = GeneralSAM::<BTreeTransTable<_>>::from_chars("abcbc".chars());
+//! let sam = GeneralSam::<BTreeTransTable<_>>::from_chars("abcbc");
 //!
-//! let state = sam.get_root_state();
+//! let mut state = sam.get_root_state();
 //!
 //! // "b" is not a suffix but at least a substring of "abcbc"
-//! let state = state.feed_chars("b");
+//! state.feed_chars("b");
 //! assert!(!state.is_accepting());
 //!
 //! // "bc" is a suffix of "abcbc"
-//! let state = state.feed_chars("c");
+//! state.feed_chars("c");
 //! assert!(state.is_accepting());
 //!
 //! // "bcbc" is a suffix of "abcbc"
-//! let state = state.feed_chars("bc");
+//! state.feed_chars("bc");
 //! assert!(state.is_accepting());
 //!
 //! // "bcbcbc" is not a substring, much less a suffix of "abcbc"
-//! let state = state.feed_chars("bc");
+//! state.feed_chars("bc");
 //! assert!(!state.is_accepting() && state.is_nil());
 //! ```
 //!
 //! ```rust
 //! # #[cfg(feature = "trie")] {
-//! use general_sam::{GeneralSAM, Trie, BTreeTransTable};
+//! use general_sam::{GeneralSam, Trie, BTreeTransTable};
 //!
 //! let mut trie = Trie::<BTreeTransTable<_>>::default();
-//! trie.insert_iter("hello".chars());
-//! trie.insert_iter("Chielo".chars());
+//! trie.insert("hello".chars());
+//! trie.insert("Chielo".chars());
 //!
-//! let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
+//! let sam = GeneralSam::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 //!
 //! assert!(sam.get_root_state().feed_chars("lo").is_accepting());
 //! assert!(sam.get_root_state().feed_chars("ello").is_accepting());
@@ -101,7 +101,7 @@ pub mod trie_alike;
 
 pub use {
     sam::{
-        GeneralSAM, GeneralSAMNode, GeneralSAMNodeID, GeneralSAMState, SAM_NIL_NODE_ID,
+        GeneralSam, GeneralSamNode, GeneralSamNodeID, GeneralSamState, SAM_NIL_NODE_ID,
         SAM_ROOT_NODE_ID,
     },
     table::{
@@ -127,3 +127,9 @@ pub use utils::{rope, suffixwise, tokenize, tokenize::GreedyTokenizer};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(doctest)]
+mod _doctest_readme {
+    #[doc = include_str!("../README.md")]
+    struct ReadMe;
+}

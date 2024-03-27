@@ -88,7 +88,7 @@ mod trie {
             suffixwise::{SuffixInTrie, SuffixInTrieData},
             tokenize::GreedyTokenizer,
         },
-        BTreeTransTable, GeneralSAM, TransitionTable, Trie,
+        BTreeTransTable, GeneralSam, TransitionTable, Trie,
     };
 
     #[test]
@@ -99,10 +99,10 @@ mod trie {
         let mut trie = Trie::<BTreeTransTable<char>>::default();
         let mut id_to_word = BTreeMap::new();
         for word in vocab {
-            id_to_word.insert(trie.insert_iter(word.chars()), word);
+            id_to_word.insert(trie.insert(word.chars()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
+        let sam = GeneralSam::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
         let data = SuffixInTrieData::build(&sam, trie.get_root_state(), |tn| tn.clone());
         for i in data.iter().skip(1) {
@@ -128,14 +128,14 @@ mod trie {
     fn case_tokenizer<
         T: Clone,
         TransTable: TransitionTable<KeyType = T>,
-        Iter: Iterator<Item = T>,
-        SAMRef: Deref<Target = GeneralSAM<TransTable>>,
+        Iter: IntoIterator<Item = T>,
+        SamRef: Deref<Target = GeneralSam<TransTable>>,
     >(
-        tokenizer: &GreedyTokenizer<TransTable, usize, SAMRef>,
+        tokenizer: &GreedyTokenizer<TransTable, usize, SamRef>,
         trie: &Trie<TransTable>,
         seq: Iter,
     ) {
-        let seq: Box<[_]> = seq.collect();
+        let seq: Box<[_]> = seq.into_iter().collect();
         let output = tokenizer.tokenize(seq.iter().cloned(), &trie.num_of_nodes());
         let expected = greedy_tokenize_with_trie(trie, seq.iter().cloned());
         output.iter().zip(expected.iter()).for_each(|(o, e)| {
@@ -151,10 +151,10 @@ mod trie {
         let mut trie = Trie::<BTreeTransTable<char>>::default();
         let mut id_to_word = BTreeMap::new();
         for word in vocab {
-            id_to_word.insert(trie.insert_iter(word.chars()), word);
+            id_to_word.insert(trie.insert(word.chars()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
+        let sam = GeneralSam::<BTreeTransTable<char>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -174,10 +174,10 @@ mod trie {
         let mut trie = Trie::<BTreeTransTable<u8>>::default();
         let mut id_to_word = BTreeMap::new();
         for word in vocab {
-            id_to_word.insert(trie.insert_iter(word.bytes()), word);
+            id_to_word.insert(trie.insert(word.bytes()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
+        let sam = GeneralSam::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
@@ -197,10 +197,10 @@ mod trie {
         let mut trie = Trie::<BTreeTransTable<u8>>::default();
         let mut id_to_word = BTreeMap::new();
         for word in vocab {
-            id_to_word.insert(trie.insert_iter(word.bytes()), word);
+            id_to_word.insert(trie.insert(word.bytes()), word);
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
+        let sam = GeneralSam::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let tokenizer = GreedyTokenizer::<BTreeTransTable<_>, _, _>::build_from_sam_and_trie(
             sam,
@@ -231,12 +231,12 @@ mod trie {
         for _ in 0..rng.gen_range(0..vocab_size) {
             let len = rng.gen_range(0..token_len);
             let string = Alphanumeric.sample_string(&mut rng, len);
-            trie.insert_ref_iter(f(string).iter());
+            trie.insert(f(string));
         }
         let trie = trie.alter_trans_table::<TransTable>();
 
         let sam =
-            GeneralSAM::<BTreeTransTable<TransTable::KeyType>>::from_trie(trie.get_root_state())
+            GeneralSam::<BTreeTransTable<TransTable::KeyType>>::from_trie(trie.get_root_state())
                 .alter_trans_table_into::<TransTable>();
 
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());

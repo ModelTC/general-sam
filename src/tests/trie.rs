@@ -4,39 +4,39 @@ use rand::{
     Rng, SeedableRng,
 };
 
-use crate::{BTreeTransTable, GeneralSAM, Trie, SAM_ROOT_NODE_ID};
+use crate::{BTreeTransTable, GeneralSam, Trie, SAM_ROOT_NODE_ID};
 
 #[test]
 fn test_example_from_trie() {
-    let mut trie = Trie::<BTreeTransTable<_>>::default();
+    let mut trie = Trie::<BTreeTransTable<char>>::default();
 
-    trie.insert_iter("hello".chars());
-    trie.insert_iter("Chielo".chars());
+    trie.insert_chars("hello");
+    trie.insert_chars("Chielo");
 
-    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
+    let sam = GeneralSam::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
-    let state = sam.get_root_state();
+    let mut state = sam.get_root_state();
     assert!(state.is_root());
-    let state = state.feed_chars("l");
+    state.feed_chars("l");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("o");
+    state.feed_chars("o");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
 
-    let state = sam.get_root_state();
+    let mut state = sam.get_root_state();
     assert!(state.is_root());
-    let state = state.feed_chars("Chie");
+    state.feed_chars("Chie");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("lo");
+    state.feed_chars("lo");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
 }
 
 fn case_trie_suffix(vocab: &[&str]) {
     let mut trie = Trie::<BTreeTransTable<_>>::default();
-    vocab.iter().for_each(|word| {
-        trie.insert_iter(word.chars());
+    vocab.iter().for_each(|&word| {
+        trie.insert_chars(word);
     });
 
-    let sam = GeneralSAM::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
+    let sam = GeneralSam::<BTreeTransTable<_>>::from_trie(trie.get_root_state());
 
     let is_suffix = |word_slice: &str| vocab.iter().any(|word| word.ends_with(word_slice));
 
@@ -46,7 +46,8 @@ fn case_trie_suffix(vocab: &[&str]) {
                 .chain(Some((word.len(), '\0')))
                 .for_each(|(j, _)| {
                     if i < j {
-                        let state = sam.get_root_state().feed_iter(word[i..j].chars());
+                        let mut state = sam.get_root_state();
+                        state.feed_chars(&word[i..j]);
                         assert!(!state.is_nil());
                         assert!(is_suffix(&word[i..j]) ^ !(state.is_accepting()));
                     }
@@ -71,14 +72,14 @@ fn test_simple_trie_suffix() {
 fn test_topo_and_suf_len_sorted_order() {
     let mut rng = StdRng::seed_from_u64(1134759173975);
     for _ in 0..10000 {
-        let mut trie = Trie::<BTreeTransTable<_>>::default();
+        let mut trie = Trie::<BTreeTransTable<u8>>::default();
         for _ in 0..rng.gen_range(0..32) {
             let len = rng.gen_range(0..9);
             let string = Alphanumeric.sample_string(&mut rng, len);
-            trie.insert_ref_iter(string.as_bytes().iter());
+            trie.insert_bytes(string.as_bytes());
         }
 
-        let sam = GeneralSAM::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
+        let sam = GeneralSam::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());
 
         let order = sam.get_topo_and_suf_len_sorted_node_ids();
         let rank = {

@@ -4,17 +4,17 @@ use std::{borrow::Borrow, marker::PhantomData};
 
 use crate::{TravelEvent, TrieNodeAlike};
 
-use super::{GeneralSAM, GeneralSAMNode, TransitionTable, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
+use super::{GeneralSam, GeneralSamNode, TransitionTable, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
 
 #[derive(Debug)]
-pub struct GeneralSAMState<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>> {
-    pub sam: SAMRef,
+pub struct GeneralSamState<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>>> {
+    pub sam: SamRef,
     pub node_id: usize,
     phantom: PhantomData<TransTable>,
 }
 
-impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>> + Clone> Clone
-    for GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>> + Clone> Clone
+    for GeneralSamState<TransTable, SamRef>
 {
     fn clone(&self) -> Self {
         Self {
@@ -25,26 +25,26 @@ impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>> + Clone
     }
 }
 
-impl<TransTable: TransitionTable<KeyType = u8>, SAMRef: Borrow<GeneralSAM<TransTable>>>
-    GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable<KeyType = u8>, SamRef: Borrow<GeneralSam<TransTable>>>
+    GeneralSamState<TransTable, SamRef>
 {
-    pub fn feed_bytes(self, seq: &str) -> Self {
-        self.feed_ref(seq.as_bytes())
+    pub fn feed_bytes<S: AsRef<[u8]>>(&mut self, seq: S) -> &mut Self {
+        self.feed_ref(seq.as_ref())
     }
 }
 
-impl<TransTable: TransitionTable<KeyType = char>, SAMRef: Borrow<GeneralSAM<TransTable>>>
-    GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable<KeyType = char>, SamRef: Borrow<GeneralSam<TransTable>>>
+    GeneralSamState<TransTable, SamRef>
 {
-    pub fn feed_chars(self, seq: &str) -> Self {
-        self.feed(seq.chars())
+    pub fn feed_chars<S: AsRef<str>>(&mut self, seq: S) -> &mut Self {
+        self.feed(seq.as_ref().chars())
     }
 }
 
-impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>>
-    GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>>>
+    GeneralSamState<TransTable, SamRef>
 {
-    pub fn new(sam: SAMRef, node_id: usize) -> Self {
+    pub fn new(sam: SamRef, node_id: usize) -> Self {
         Self {
             sam,
             node_id,
@@ -52,8 +52,8 @@ impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>>
         }
     }
 
-    pub fn inner_as_ref(&self) -> GeneralSAMState<TransTable, &GeneralSAM<TransTable>> {
-        GeneralSAMState {
+    pub fn inner_as_ref(&self) -> GeneralSamState<TransTable, &GeneralSam<TransTable>> {
+        GeneralSamState {
             sam: self.sam.borrow(),
             node_id: self.node_id,
             phantom: PhantomData,
@@ -74,71 +74,63 @@ impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>>>
             .unwrap_or(false)
     }
 
-    pub fn get_sam_ref(&self) -> &GeneralSAM<TransTable> {
+    pub fn get_sam_ref(&self) -> &GeneralSam<TransTable> {
         self.sam.borrow()
     }
 
-    pub fn get_node(&self) -> Option<&GeneralSAMNode<TransTable>> {
+    pub fn get_node(&self) -> Option<&GeneralSamNode<TransTable>> {
         self.sam.borrow().get_node(self.node_id)
     }
 
-    pub fn goto_suffix_parent(&mut self) {
+    pub fn goto_suffix_parent(&mut self) -> &mut Self {
         if let Some(node) = self.get_node() {
             self.node_id = node.link;
         } else {
             self.node_id = SAM_NIL_NODE_ID;
         }
+        self
     }
 
-    pub fn goto(&mut self, t: &TransTable::KeyType) {
-        self.node_id =
-            if let Some(next_node_id) = self.get_node().and_then(|node| node.trans.get(t)) {
-                *next_node_id
-            } else {
-                SAM_NIL_NODE_ID
-            }
+    pub fn goto<K: Borrow<TransTable::KeyType>>(&mut self, t: &K) -> &mut Self {
+        self.node_id = if let Some(next_node_id) =
+            self.get_node().and_then(|node| node.trans.get(t.borrow()))
+        {
+            *next_node_id
+        } else {
+            SAM_NIL_NODE_ID
+        };
+        self
     }
 
-    pub fn feed<Seq: IntoIterator<Item = TransTable::KeyType>>(self, seq: Seq) -> Self {
-        self.feed_iter(seq.into_iter())
-    }
-
-    pub fn feed_iter<Iter: Iterator<Item = TransTable::KeyType>>(mut self, iter: Iter) -> Self {
-        for t in iter {
+    pub fn feed<Seq: IntoIterator<Item = TransTable::KeyType>>(&mut self, seq: Seq) -> &mut Self {
+        for t in seq {
             if self.is_nil() {
                 break;
             }
-            self.goto(&t)
+            self.goto(&t);
         }
         self
     }
 
-    pub fn feed_ref<'s, Seq: IntoIterator<Item = &'s TransTable::KeyType>>(self, seq: Seq) -> Self
+    pub fn feed_ref<'s, Seq: IntoIterator<Item = &'s TransTable::KeyType>>(
+        &mut self,
+        seq: Seq,
+    ) -> &mut Self
     where
         <TransTable as TransitionTable>::KeyType: 's,
     {
-        self.feed_ref_iter(seq.into_iter())
-    }
-
-    pub fn feed_ref_iter<'s, Iter: Iterator<Item = &'s TransTable::KeyType>>(
-        mut self,
-        iter: Iter,
-    ) -> Self
-    where
-        <TransTable as TransitionTable>::KeyType: 's,
-    {
-        for t in iter {
+        for t in seq {
             if self.is_nil() {
                 break;
             }
-            self.goto(t)
+            self.goto(t);
         }
         self
     }
 }
 
-impl<TransTable: TransitionTable, SAMRef: Borrow<GeneralSAM<TransTable>> + Clone>
-    GeneralSAMState<TransTable, SAMRef>
+impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>> + Clone>
+    GeneralSamState<TransTable, SamRef>
 {
     pub fn get_non_nil_trans(&self, key: &TransTable::KeyType) -> Option<Self> {
         self.get_node()

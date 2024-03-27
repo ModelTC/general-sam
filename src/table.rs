@@ -6,21 +6,21 @@ use std::{
     marker::PhantomData,
 };
 
-use crate::GeneralSAMNodeID;
+use crate::GeneralSamNodeID;
 
 #[derive(Clone, Debug)]
 pub struct WithKeyDerefedIter<
     'a,
     KeyType: 'a + Clone,
-    IterType: Iterator<Item = (&'a KeyType, &'a GeneralSAMNodeID)>,
+    IterType: Iterator<Item = (&'a KeyType, &'a GeneralSamNodeID)>,
 > {
     inner: IterType,
 }
 
-impl<'a, KeyType: 'a + Clone, IterType: Iterator<Item = (&'a KeyType, &'a GeneralSAMNodeID)>>
+impl<'a, KeyType: 'a + Clone, IterType: Iterator<Item = (&'a KeyType, &'a GeneralSamNodeID)>>
     Iterator for WithKeyDerefedIter<'a, KeyType, IterType>
 {
-    type Item = (KeyType, &'a GeneralSAMNodeID);
+    type Item = (KeyType, &'a GeneralSamNodeID);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|x| (x.0.clone(), x.1))
@@ -31,15 +31,15 @@ impl<'a, KeyType: 'a + Clone, IterType: Iterator<Item = (&'a KeyType, &'a Genera
 pub struct TransitionIter<
     'a,
     KeyType: 'a,
-    IterType: Iterator<Item = (KeyType, &'a GeneralSAMNodeID)>,
+    IterType: Iterator<Item = (KeyType, &'a GeneralSamNodeID)>,
 > {
     inner: IterType,
 }
 
-impl<'a, KeyType: 'a, IterType: Iterator<Item = (KeyType, &'a GeneralSAMNodeID)>> Iterator
+impl<'a, KeyType: 'a, IterType: Iterator<Item = (KeyType, &'a GeneralSamNodeID)>> Iterator
     for TransitionIter<'a, KeyType, IterType>
 {
-    type Item = &'a GeneralSAMNodeID;
+    type Item = &'a GeneralSamNodeID;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|x| x.1)
@@ -48,18 +48,18 @@ impl<'a, KeyType: 'a, IterType: Iterator<Item = (KeyType, &'a GeneralSAMNodeID)>
 
 pub trait TransitionTable {
     type KeyType: Clone;
-    type IterType<'a>: Iterator<Item = (Self::KeyType, &'a GeneralSAMNodeID)>
+    type IterType<'a>: Iterator<Item = (Self::KeyType, &'a GeneralSamNodeID)>
     where
         Self: 'a,
         Self::KeyType: 'a;
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (Self::KeyType, &'b GeneralSAMNodeID)>>(
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (Self::KeyType, &'b GeneralSamNodeID)>>(
         iter: Iter,
     ) -> Self
     where
         Self::KeyType: 'b;
-    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSAMNodeID>;
-    fn get_mut(&mut self, key: &Self::KeyType) -> Option<&mut GeneralSAMNodeID>;
+    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSamNodeID>;
+    fn get_mut(&mut self, key: &Self::KeyType) -> Option<&mut GeneralSamNodeID>;
     fn iter(&self) -> Self::IterType<'_>;
 
     fn contains_key(&self, key: &Self::KeyType) -> bool {
@@ -72,9 +72,9 @@ pub trait TransitionTable {
 }
 
 pub trait ConstructiveTransitionTable: TransitionTable + Clone + Default {
-    fn insert(&mut self, key: Self::KeyType, trans: GeneralSAMNodeID);
+    fn insert(&mut self, key: Self::KeyType, trans: GeneralSamNodeID);
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (Self::KeyType, &'b GeneralSAMNodeID)>>(
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (Self::KeyType, &'b GeneralSamNodeID)>>(
         iter: Iter,
     ) -> Self
     where
@@ -88,23 +88,23 @@ pub trait ConstructiveTransitionTable: TransitionTable + Clone + Default {
     }
 }
 
-pub type BTreeTransTable<KeyType> = BTreeMap<KeyType, GeneralSAMNodeID>;
+pub type BTreeTransTable<KeyType> = BTreeMap<KeyType, GeneralSamNodeID>;
 
 impl<KeyType: Ord + Clone> ConstructiveTransitionTable for BTreeTransTable<KeyType> {
-    fn insert(&mut self, key: KeyType, trans: GeneralSAMNodeID) {
+    fn insert(&mut self, key: KeyType, trans: GeneralSamNodeID) {
         BTreeMap::insert(self, key, trans);
     }
 }
 
 impl<KeyType: Clone + Ord> TransitionTable for BTreeTransTable<KeyType> {
     type KeyType = KeyType;
-    type IterType<'a> = WithKeyDerefedIter<'a, KeyType, std::collections::btree_map::Iter<'a, KeyType, GeneralSAMNodeID>> where Self: 'a, Self::KeyType: 'a;
+    type IterType<'a> = WithKeyDerefedIter<'a, KeyType, std::collections::btree_map::Iter<'a, KeyType, GeneralSamNodeID>> where Self: 'a, Self::KeyType: 'a;
 
-    fn get(&self, key: &KeyType) -> Option<&GeneralSAMNodeID> {
+    fn get(&self, key: &KeyType) -> Option<&GeneralSamNodeID> {
         BTreeMap::get(self, key)
     }
 
-    fn get_mut(&mut self, key: &KeyType) -> Option<&mut GeneralSAMNodeID> {
+    fn get_mut(&mut self, key: &KeyType) -> Option<&mut GeneralSamNodeID> {
         BTreeMap::get_mut(self, key)
     }
 
@@ -114,7 +114,9 @@ impl<KeyType: Clone + Ord> TransitionTable for BTreeTransTable<KeyType> {
         }
     }
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (KeyType, &'b GeneralSAMNodeID)>>(iter: Iter) -> Self
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (KeyType, &'b GeneralSamNodeID)>>(
+        iter: Iter,
+    ) -> Self
     where
         Self::KeyType: 'b,
     {
@@ -122,25 +124,25 @@ impl<KeyType: Clone + Ord> TransitionTable for BTreeTransTable<KeyType> {
     }
 }
 
-pub type HashTransTable<KeyType> = HashMap<KeyType, GeneralSAMNodeID>;
+pub type HashTransTable<KeyType> = HashMap<KeyType, GeneralSamNodeID>;
 
 impl<KeyType: std::hash::Hash + Eq + Clone> ConstructiveTransitionTable
     for HashTransTable<KeyType>
 {
-    fn insert(&mut self, key: KeyType, trans: GeneralSAMNodeID) {
+    fn insert(&mut self, key: KeyType, trans: GeneralSamNodeID) {
         HashMap::insert(self, key, trans);
     }
 }
 
 impl<KeyType: std::hash::Hash + Eq + Clone> TransitionTable for HashTransTable<KeyType> {
     type KeyType = KeyType;
-    type IterType<'a> = WithKeyDerefedIter<'a, KeyType, std::collections::hash_map::Iter<'a, KeyType, GeneralSAMNodeID>> where Self: 'a, Self::KeyType: 'a;
+    type IterType<'a> = WithKeyDerefedIter<'a, KeyType, std::collections::hash_map::Iter<'a, KeyType, GeneralSamNodeID>> where Self: 'a, Self::KeyType: 'a;
 
-    fn get(&self, key: &KeyType) -> Option<&GeneralSAMNodeID> {
+    fn get(&self, key: &KeyType) -> Option<&GeneralSamNodeID> {
         HashMap::get(self, key)
     }
 
-    fn get_mut(&mut self, key: &KeyType) -> Option<&mut GeneralSAMNodeID> {
+    fn get_mut(&mut self, key: &KeyType) -> Option<&mut GeneralSamNodeID> {
         HashMap::get_mut(self, key)
     }
 
@@ -150,7 +152,9 @@ impl<KeyType: std::hash::Hash + Eq + Clone> TransitionTable for HashTransTable<K
         }
     }
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (KeyType, &'b GeneralSAMNodeID)>>(iter: Iter) -> Self
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (KeyType, &'b GeneralSamNodeID)>>(
+        iter: Iter,
+    ) -> Self
     where
         Self::KeyType: 'b,
     {
@@ -185,9 +189,9 @@ fn bisect_unstable<K: Ord, V, C: AsRef<[(K, V)]>>(container: C, key: &K) -> Opti
 #[derive(Clone, Debug)]
 pub struct BisectTable<
     K: Clone + Ord,
-    C: AsRef<[(K, GeneralSAMNodeID)]>
-        + AsMut<[(K, GeneralSAMNodeID)]>
-        + FromIterator<(K, GeneralSAMNodeID)>,
+    C: AsRef<[(K, GeneralSamNodeID)]>
+        + AsMut<[(K, GeneralSamNodeID)]>
+        + FromIterator<(K, GeneralSamNodeID)>,
 > {
     inner: C,
     phantom: PhantomData<K>,
@@ -195,11 +199,11 @@ pub struct BisectTable<
 
 #[derive(Clone, Debug)]
 pub struct BisectTableIter<'s, K: Clone + Ord> {
-    inner: core::slice::Iter<'s, (K, GeneralSAMNodeID)>,
+    inner: core::slice::Iter<'s, (K, GeneralSamNodeID)>,
 }
 
 impl<'s, K: Clone + Ord> Iterator for BisectTableIter<'s, K> {
-    type Item = (K, &'s GeneralSAMNodeID);
+    type Item = (K, &'s GeneralSamNodeID);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|x| (x.0.clone(), &x.1))
@@ -208,19 +212,19 @@ impl<'s, K: Clone + Ord> Iterator for BisectTableIter<'s, K> {
 
 impl<
         K: Clone + Ord,
-        C: AsRef<[(K, GeneralSAMNodeID)]>
-            + AsMut<[(K, GeneralSAMNodeID)]>
-            + FromIterator<(K, GeneralSAMNodeID)>,
+        C: AsRef<[(K, GeneralSamNodeID)]>
+            + AsMut<[(K, GeneralSamNodeID)]>
+            + FromIterator<(K, GeneralSamNodeID)>,
     > TransitionTable for BisectTable<K, C>
 {
     type KeyType = K;
     type IterType<'a> = BisectTableIter<'a, K> where Self: 'a, Self::KeyType: 'a;
 
-    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSAMNodeID> {
+    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSamNodeID> {
         bisect_unstable(&self.inner, key).map(|i| &self.inner.as_ref()[i].1)
     }
 
-    fn get_mut(&mut self, key: &K) -> Option<&mut GeneralSAMNodeID> {
+    fn get_mut(&mut self, key: &K) -> Option<&mut GeneralSamNodeID> {
         bisect_unstable(&self.inner, key).map(|i| &mut self.inner.as_mut()[i].1)
     }
 
@@ -230,11 +234,12 @@ impl<
         }
     }
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (K, &'b GeneralSAMNodeID)>>(iter: Iter) -> Self
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (K, &'b GeneralSamNodeID)>>(iter: Iter) -> Self
     where
         Self::KeyType: 'b,
     {
-        let mut inner: Box<[(K, GeneralSAMNodeID)]> = iter.map(|(u, v)| (u.clone(), *v)).collect();
+        let mut inner: Box<[(K, GeneralSamNodeID)]> =
+            iter.into_iter().map(|(u, v)| (u.clone(), *v)).collect();
         inner.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         Self {
             inner: inner.iter().map(|x| (x.0.clone(), x.1)).collect(),
@@ -243,8 +248,8 @@ impl<
     }
 }
 
-pub type VecBisectTable<K> = BisectTable<K, Vec<(K, GeneralSAMNodeID)>>;
-pub type BoxBisectTable<K> = BisectTable<K, Box<[(K, GeneralSAMNodeID)]>>;
+pub type VecBisectTable<K> = BisectTable<K, Vec<(K, GeneralSamNodeID)>>;
+pub type BoxBisectTable<K> = BisectTable<K, Box<[(K, GeneralSamNodeID)]>>;
 
 pub trait SmallAlphabet: Copy + Ord + Into<usize> {
     const SIZE_LOG_2: usize;
@@ -272,9 +277,9 @@ impl SmallAlphabet for u8 {
 #[derive(Clone, Debug)]
 pub struct WholeAlphabetTable<
     K: SmallAlphabet,
-    C: AsRef<[Option<GeneralSAMNodeID>]>
-        + AsMut<[Option<GeneralSAMNodeID>]>
-        + FromIterator<Option<GeneralSAMNodeID>>
+    C: AsRef<[Option<GeneralSamNodeID>]>
+        + AsMut<[Option<GeneralSamNodeID>]>
+        + FromIterator<Option<GeneralSamNodeID>>
         + Clone,
 > {
     inner: C,
@@ -283,12 +288,12 @@ pub struct WholeAlphabetTable<
 
 #[derive(Clone, Debug)]
 pub struct WholeAlphabetTableIter<'s, K: SmallAlphabet> {
-    inner: std::iter::Enumerate<core::slice::Iter<'s, Option<GeneralSAMNodeID>>>,
+    inner: std::iter::Enumerate<core::slice::Iter<'s, Option<GeneralSamNodeID>>>,
     phantom: PhantomData<K>,
 }
 
 impl<'s, K: SmallAlphabet> Iterator for WholeAlphabetTableIter<'s, K> {
-    type Item = (K, &'s GeneralSAMNodeID);
+    type Item = (K, &'s GeneralSamNodeID);
 
     fn next(&mut self) -> Option<Self::Item> {
         for (k, ref v) in self.inner.by_ref() {
@@ -302,9 +307,9 @@ impl<'s, K: SmallAlphabet> Iterator for WholeAlphabetTableIter<'s, K> {
 
 impl<
         K: SmallAlphabet,
-        C: AsRef<[Option<GeneralSAMNodeID>]>
-            + AsMut<[Option<GeneralSAMNodeID>]>
-            + FromIterator<Option<GeneralSAMNodeID>>
+        C: AsRef<[Option<GeneralSamNodeID>]>
+            + AsMut<[Option<GeneralSamNodeID>]>
+            + FromIterator<Option<GeneralSamNodeID>>
             + Clone,
     > Default for WholeAlphabetTable<K, C>
 {
@@ -318,13 +323,13 @@ impl<
 
 impl<
         K: SmallAlphabet,
-        C: AsRef<[Option<GeneralSAMNodeID>]>
-            + AsMut<[Option<GeneralSAMNodeID>]>
-            + FromIterator<Option<GeneralSAMNodeID>>
+        C: AsRef<[Option<GeneralSamNodeID>]>
+            + AsMut<[Option<GeneralSamNodeID>]>
+            + FromIterator<Option<GeneralSamNodeID>>
             + Clone,
     > ConstructiveTransitionTable for WholeAlphabetTable<K, C>
 {
-    fn insert(&mut self, key: Self::KeyType, trans: GeneralSAMNodeID) {
+    fn insert(&mut self, key: Self::KeyType, trans: GeneralSamNodeID) {
         let k: usize = key.into();
         self.inner.as_mut()[k] = Some(trans)
     }
@@ -332,21 +337,21 @@ impl<
 
 impl<
         K: SmallAlphabet,
-        C: AsRef<[Option<GeneralSAMNodeID>]>
-            + AsMut<[Option<GeneralSAMNodeID>]>
-            + FromIterator<Option<GeneralSAMNodeID>>
+        C: AsRef<[Option<GeneralSamNodeID>]>
+            + AsMut<[Option<GeneralSamNodeID>]>
+            + FromIterator<Option<GeneralSamNodeID>>
             + Clone,
     > TransitionTable for WholeAlphabetTable<K, C>
 {
     type KeyType = K;
     type IterType<'a> = WholeAlphabetTableIter<'a, K> where Self: 'a, Self::KeyType: 'a;
 
-    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSAMNodeID> {
+    fn get(&self, key: &Self::KeyType) -> Option<&GeneralSamNodeID> {
         let k: usize = (*key).into();
         self.inner.as_ref().get(k).and_then(|x| x.as_ref())
     }
 
-    fn get_mut(&mut self, key: &Self::KeyType) -> Option<&mut GeneralSAMNodeID> {
+    fn get_mut(&mut self, key: &Self::KeyType) -> Option<&mut GeneralSamNodeID> {
         let k: usize = (*key).into();
         self.inner.as_mut().get_mut(k).and_then(|x| x.as_mut())
     }
@@ -358,7 +363,7 @@ impl<
         }
     }
 
-    fn from_kv_iter<'b, Iter: Iterator<Item = (Self::KeyType, &'b GeneralSAMNodeID)>>(
+    fn from_kv_iter<'b, Iter: IntoIterator<Item = (Self::KeyType, &'b GeneralSamNodeID)>>(
         iter: Iter,
     ) -> Self
     where

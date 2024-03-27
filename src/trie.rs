@@ -1,10 +1,10 @@
 //! Trie, supporting `TrieNodeAlike`.
 
-use std::ops::Deref;
+use std::{borrow::Borrow, ops::Deref};
 
-use crate::{ConstructiveTransitionTable, GeneralSAMNodeID, TransitionTable, TrieNodeAlike};
+use crate::{ConstructiveTransitionTable, GeneralSamNodeID, TransitionTable, TrieNodeAlike};
 
-pub type TrieNodeID = GeneralSAMNodeID;
+pub type TrieNodeID = GeneralSamNodeID;
 pub const TRIE_NIL_NODE_ID: TrieNodeID = 0;
 pub const TRIE_ROOT_NODE_ID: TrieNodeID = 1;
 
@@ -128,19 +128,12 @@ impl<TransTable: ConstructiveTransitionTable> Trie<TransTable> {
         node_id
     }
 
-    pub fn insert_ref_iter<'s, Iter: Iterator<Item = &'s TransTable::KeyType>>(
-        &'s mut self,
-        iter: Iter,
-    ) -> TrieNodeID {
-        self.insert_iter(iter.cloned())
-    }
-
-    pub fn insert_iter<Iter: Iterator<Item = TransTable::KeyType>>(
+    pub fn insert<Iter: IntoIterator<Item = TransTable::KeyType>>(
         &mut self,
         iter: Iter,
     ) -> TrieNodeID {
         let mut current = TRIE_ROOT_NODE_ID;
-        iter.for_each(|t| {
+        iter.into_iter().for_each(|t| {
             current = match self.node_pool[current].trans.get(&t) {
                 Some(v) => *v,
                 None => {
@@ -152,6 +145,18 @@ impl<TransTable: ConstructiveTransitionTable> Trie<TransTable> {
         });
         self.node_pool[current].accept = true;
         current
+    }
+}
+
+impl<TransTable: ConstructiveTransitionTable<KeyType = u8>> Trie<TransTable> {
+    pub fn insert_bytes<S: AsRef<[u8]>>(&mut self, bytes: S) -> TrieNodeID {
+        self.insert(bytes.as_ref().iter().copied())
+    }
+}
+
+impl<TransTable: ConstructiveTransitionTable<KeyType = char>> Trie<TransTable> {
+    pub fn insert_chars<S: AsRef<str>>(&mut self, s: S) -> TrieNodeID {
+        self.insert(s.as_ref().chars())
     }
 }
 
@@ -185,23 +190,31 @@ impl<TransTable: TransitionTable, TrieRef: Deref<Target = Trie<TransTable>>>
         }
     }
 
-    pub fn goto(&mut self, t: &TransTable::KeyType) {
+    pub fn goto<K: Borrow<TransTable::KeyType>>(&mut self, t: K) {
         if let Some(node) = self.get_node() {
-            self.node_id = node.trans.get(t).copied().unwrap_or(TRIE_NIL_NODE_ID)
+            self.node_id = node
+                .trans
+                .get(t.borrow())
+                .copied()
+                .unwrap_or(TRIE_NIL_NODE_ID)
         } else {
             self.node_id = TRIE_NIL_NODE_ID;
         }
     }
 
-    pub fn feed_iter<Iter: Iterator<Item = TransTable::KeyType>>(&mut self, iter: Iter) {
-        iter.for_each(|x| self.goto(&x));
+    pub fn feed<Iter: IntoIterator<Item = TransTable::KeyType>>(&mut self, iter: Iter) {
+        iter.into_iter().for_each(|x| self.goto(&x));
     }
 
-    pub fn feed_ref_iter<'s, Iter: Iterator<Item = &'s TransTable::KeyType>>(
-        &'s mut self,
+    pub fn feed_ref<K: Borrow<TransTable::KeyType>, Iter: IntoIterator<Item = K>>(
+        &mut self,
         iter: Iter,
     ) {
-        iter.for_each(|x| self.goto(x));
+        iter.into_iter().for_each(|x| self.goto(x));
+    }
+
+    pub fn feed_slice<S: AsRef<[TransTable::KeyType]>>(&mut self, slice: S) {
+        self.feed_ref(slice.as_ref().iter())
     }
 }
 

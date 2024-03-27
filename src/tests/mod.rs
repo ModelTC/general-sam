@@ -1,4 +1,4 @@
-use crate::{BTreeTransTable, GeneralSAM};
+use crate::{BTreeTransTable, GeneralSam};
 
 #[cfg(feature = "utils")]
 mod utils;
@@ -8,86 +8,86 @@ mod trie;
 
 #[test]
 fn test_example_from_chars() {
-    let sam_from_chars = GeneralSAM::<BTreeTransTable<char>>::from_chars("abcbc".chars());
-    // => GeneralSAM<char>
+    let sam_from_chars = GeneralSam::<BTreeTransTable<char>>::from_chars("abcbc");
+    // => GeneralSam<char>
 
-    let state = sam_from_chars.get_root_state();
+    let mut state = sam_from_chars.get_root_state();
     assert!(state.is_root());
-    let state = state.feed_chars("b");
+    state.feed_chars("b");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("c");
+    state.feed_chars("c");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("bc");
+    state.feed_chars("bc");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("bc");
+    state.feed_chars("bc");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
 }
 
 #[test]
 fn test_example_from_bytes() {
-    let sam_from_bytes = GeneralSAM::<BTreeTransTable<u8>>::from_bytes("abcbc");
-    // => GeneralSAM<u8>
+    let sam_from_bytes = GeneralSam::<BTreeTransTable<u8>>::from_bytes("abcbc");
+    // => GeneralSam<u8>
 
-    let state = sam_from_bytes.get_root_state();
+    let mut state = sam_from_bytes.get_root_state();
     assert!(state.is_root());
-    let state = state.feed_bytes("b");
+    state.feed_bytes("b");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("c");
+    state.feed_bytes("c");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("bc");
+    state.feed_bytes("bc");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("bc");
+    state.feed_bytes("bc");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
 }
 
 #[test]
 fn test_simple_bytes() {
-    let sam = GeneralSAM::<BTreeTransTable<u8>>::from_bytes("abcbc".as_bytes().iter());
-    let state = sam.get_root_state();
+    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("abcbc".as_bytes());
+    let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
-    let state = state.feed_bytes("bc");
+    state.feed_bytes("bc");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("b");
+    state.feed_bytes("b");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("c");
+    state.feed_bytes("c");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("a");
+    state.feed_bytes("a");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
-    let state = state.feed_bytes("a");
+    state.feed_bytes("a");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
 }
 
 #[test]
 fn test_simple_chars() {
-    let sam = GeneralSAM::<BTreeTransTable<char>>::from_chars("abcbc".chars());
-    let state = sam.get_root_state();
+    let sam = GeneralSam::<BTreeTransTable<char>>::from_chars("abcbc");
+    let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
-    let state = state.feed_chars("bc");
+    state.feed_chars("bc");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("b");
+    state.feed_chars("b");
     assert!(!state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("c");
+    state.feed_chars("c");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
-    let state = state.feed_chars("a");
+    state.feed_chars("a");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
-    let state = state.feed_chars("a");
+    state.feed_chars("a");
     assert!(!state.is_accepting() && state.is_nil() && !state.is_root());
 }
 
 #[test]
 fn test_chinese_bytes() {
-    let sam = GeneralSAM::<BTreeTransTable<u8>>::from_bytes("你好".as_bytes().iter());
-    let state = sam.get_root_state();
+    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("你好".as_bytes());
+    let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
-    let state = state.feed_bytes("你好");
+    state.feed_bytes("你好");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
 }
 
 #[test]
 fn test_chinese_chars() {
-    let sam = GeneralSAM::<BTreeTransTable<char>>::from_chars("你好".chars());
-    let state = sam.get_root_state();
+    let sam = GeneralSam::<BTreeTransTable<char>>::from_chars("你好");
+    let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
-    let state = state.feed_chars("你好");
+    state.feed_chars("你好");
     assert!(state.is_accepting() && !state.is_nil() && !state.is_root());
 }
