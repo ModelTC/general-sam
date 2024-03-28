@@ -76,7 +76,7 @@ fn test_topo_and_suf_len_sorted_order() {
         for _ in 0..rng.gen_range(0..32) {
             let len = rng.gen_range(0..9);
             let string = Alphanumeric.sample_string(&mut rng, len);
-            trie.insert_bytes(string.as_bytes());
+            trie.insert_bytes(string);
         }
 
         let sam = GeneralSam::<BTreeTransTable<u8>>::from_trie(trie.get_root_state());

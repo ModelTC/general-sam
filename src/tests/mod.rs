@@ -42,7 +42,7 @@ fn test_example_from_bytes() {
 
 #[test]
 fn test_simple_bytes() {
-    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("abcbc".as_bytes());
+    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("abcbc");
     let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
     state.feed_bytes("bc");
@@ -76,7 +76,7 @@ fn test_simple_chars() {
 
 #[test]
 fn test_chinese_bytes() {
-    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("你好".as_bytes());
+    let sam = GeneralSam::<BTreeTransTable<u8>>::from_bytes("你好");
     let mut state = sam.get_root_state();
     assert!(!state.is_accepting() && !state.is_nil() && state.is_root());
     state.feed_bytes("你好");
