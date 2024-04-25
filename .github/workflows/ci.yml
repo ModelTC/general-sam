@@ -30,6 +30,7 @@ jobs:
       - run: cargo install cargo-all-features
       - run: cargo check-all-features --verbose
       - run: cargo build-all-features --verbose
+      - run: cargo test-all-features --verbose
 
   rustfmt:
     name: Check Format
