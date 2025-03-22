@@ -75,12 +75,13 @@ mod trie {
     use std::{collections::BTreeMap, ops::Deref};
 
     use rand::{
-        distributions::{Alphanumeric, DistString},
-        rngs::StdRng,
         Rng, SeedableRng,
+        distr::{Alphanumeric, SampleString},
+        rngs::StdRng,
     };
 
     use crate::{
+        BTreeTransTable, GeneralSam, TransitionTable, Trie,
         table::{BoxBisectTable, HashTransTable, VecBisectTable, WholeAlphabetTable},
         tokenize::trie::greedy_tokenize_with_trie,
         utils::{
@@ -88,7 +89,6 @@ mod trie {
             suffixwise::{SuffixInTrie, SuffixInTrieData},
             tokenize::GreedyTokenizer,
         },
-        BTreeTransTable, GeneralSam, TransitionTable, Trie,
     };
 
     #[test]
@@ -228,8 +228,8 @@ mod trie {
         let mut rng = StdRng::seed_from_u64(seed);
 
         let mut trie = Trie::<BTreeTransTable<TransTable::KeyType>>::default();
-        for _ in 0..rng.gen_range(0..vocab_size) {
-            let len = rng.gen_range(0..token_len);
+        for _ in 0..rng.random_range(0..vocab_size) {
+            let len = rng.random_range(0..token_len);
             let string = Alphanumeric.sample_string(&mut rng, len);
             trie.insert(f(string));
         }
@@ -242,7 +242,7 @@ mod trie {
         let tokenizer = GreedyTokenizer::build_from_trie(&sam, trie.get_root_state());
 
         for _ in 0..32 {
-            let len = rng.gen_range(0..4096);
+            let len = rng.random_range(0..4096);
             let string = Alphanumeric.sample_string(&mut rng, len);
             case_tokenizer(&tokenizer, &trie, f(string).iter().cloned());
         }

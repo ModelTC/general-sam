@@ -3,9 +3,9 @@
 use std::{collections::LinkedList, convert::Infallible, ops::Deref};
 
 use crate::{
+    GeneralSam, GeneralSamState, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID, TransitionTable, TravelEvent,
+    TrieNodeAlike,
     rope::{Rope, RopeBase, RopeData, RopeUntaggedInner, TreapBasedRopeBase},
-    GeneralSam, GeneralSamState, TransitionTable, TravelEvent, TrieNodeAlike, SAM_NIL_NODE_ID,
-    SAM_ROOT_NODE_ID,
 };
 
 #[derive(Clone, Default, Debug)]

@@ -1,10 +1,10 @@
 use rand::{
-    distributions::{Alphanumeric, DistString},
-    rngs::StdRng,
     Rng, SeedableRng,
+    distr::{Alphanumeric, SampleString},
+    rngs::StdRng,
 };
 
-use crate::{BTreeTransTable, GeneralSam, Trie, SAM_ROOT_NODE_ID};
+use crate::{BTreeTransTable, GeneralSam, SAM_ROOT_NODE_ID, Trie};
 
 #[test]
 fn test_example_from_trie() {
@@ -73,8 +73,8 @@ fn test_topo_and_suf_len_sorted_order() {
     let mut rng = StdRng::seed_from_u64(1134759173975);
     for _ in 0..10000 {
         let mut trie = Trie::<BTreeTransTable<u8>>::default();
-        for _ in 0..rng.gen_range(0..32) {
-            let len = rng.gen_range(0..9);
+        for _ in 0..rng.random_range(0..32) {
+            let len = rng.random_range(0..9);
             let string = Alphanumeric.sample_string(&mut rng, len);
             trie.insert_bytes(string);
         }

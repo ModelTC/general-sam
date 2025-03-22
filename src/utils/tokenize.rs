@@ -60,10 +60,10 @@ impl<TransTable: TransitionTable, TokenIDType: Clone + Default + PartialEq>
 }
 
 impl<
-        TransTable: TransitionTable,
-        TokenIDType: Clone + Default + PartialEq,
-        SamRef: Deref<Target = GeneralSam<TransTable>>,
-    > GreedyTokenizer<TransTable, TokenIDType, SamRef>
+    TransTable: TransitionTable,
+    TokenIDType: Clone + Default + PartialEq,
+    SamRef: Deref<Target = GeneralSam<TransTable>>,
+> GreedyTokenizer<TransTable, TokenIDType, SamRef>
 {
     pub fn get_sam(&self) -> &SamRef {
         &self.sam
@@ -174,7 +174,6 @@ impl<
 }
 
 #[cfg(feature = "trie")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "trie")))]
 pub mod trie {
     use std::ops::Deref;
 

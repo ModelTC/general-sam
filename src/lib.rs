@@ -93,8 +93,6 @@
 //!
 //! [paper]: https://doi.org/10.1016/j.tcs.2009.03.034
 //! [general-sam-oi-wiki]: https://oi-wiki.org/string/general-sam/
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
-
 pub mod sam;
 pub mod table;
 pub mod trie_alike;
@@ -112,17 +110,13 @@ pub use {
 };
 
 #[cfg(feature = "trie")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "trie")))]
 pub mod trie;
 #[cfg(feature = "trie")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "trie")))]
-pub use trie::{Trie, TrieNode, TrieNodeID, TrieState, TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID};
+pub use trie::{TRIE_NIL_NODE_ID, TRIE_ROOT_NODE_ID, Trie, TrieNode, TrieNodeID, TrieState};
 
 #[cfg(feature = "utils")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "utils")))]
 pub mod utils;
 #[cfg(feature = "utils")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "utils")))]
 pub use utils::{rope, suffixwise, tokenize, tokenize::GreedyTokenizer};
 
 #[cfg(test)]

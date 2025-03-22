@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use general_sam::{
-    table::{BoxBisectTable, HashTransTable, VecBisectTable},
-    tokenize::{trie::greedy_tokenize_with_trie, GreedyTokenizer},
     BTreeTransTable, GeneralSam, TransitionTable, Trie,
+    table::{BoxBisectTable, HashTransTable, VecBisectTable},
+    tokenize::{GreedyTokenizer, trie::greedy_tokenize_with_trie},
 };
 use rand::{
-    distributions::{Alphanumeric, DistString},
-    rngs::StdRng,
     Rng, SeedableRng,
+    distr::{Alphanumeric, SampleString},
+    rngs::StdRng,
 };
 use tokenizers::{Model, Tokenizer as HFTokenizer};
 
@@ -30,9 +30,9 @@ fn gen_normal_vocab() -> Vocab {
 
     let mut rng = get_rng(107834265081463);
     for _ in 0..vocab_size {
-        let len = rng.gen_range(0..max_token_len);
+        let len = rng.random_range(0..max_token_len);
         let token = Alphanumeric.sample_string(&mut rng, len);
-        res.insert(token, rng.gen());
+        res.insert(token, rng.random());
     }
 
     res
@@ -46,7 +46,7 @@ fn gen_bad_vocab() -> Vocab {
 
     let mut rng = get_rng(107834265081463);
     for s in ["0", "1", "a"] {
-        res.insert(s.to_owned(), rng.gen());
+        res.insert(s.to_owned(), rng.random());
     }
     for i in 0..vocab_size {
         let token: Box<[&str]> = (0..(i / 2 + 1))
@@ -54,7 +54,7 @@ fn gen_bad_vocab() -> Vocab {
             .chain([["a"], ["1a"]][i % 2])
             .collect();
         let token = token.join("");
-        res.insert(token, rng.gen());
+        res.insert(token, rng.random());
     }
 
     res
@@ -68,7 +68,7 @@ fn gen_normal_seq(vocab: &Vocab) -> String {
     let mut rng = get_rng(9813467507349067);
 
     let chosen: Box<[&str]> = (0..num_of_tokens)
-        .map(|_| tokens[rng.gen_range(0..tokens.len())].as_str())
+        .map(|_| tokens[rng.random_range(0..tokens.len())].as_str())
         .collect();
     chosen.join("")
 }
@@ -82,7 +82,7 @@ fn gen_bad_seq(vocab: &Vocab) -> String {
 
     let chosen: Box<[&str]> = (0..num_of_tokens)
         .map(|_| {
-            let t = tokens[rng.gen_range(0..tokens.len())].as_str();
+            let t = tokens[rng.random_range(0..tokens.len())].as_str();
             let (bound, _) = t.char_indices().last().unwrap();
             &t[0..bound]
         })

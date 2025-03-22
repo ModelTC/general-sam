@@ -4,7 +4,7 @@ use std::{borrow::Borrow, marker::PhantomData};
 
 use crate::{TravelEvent, TrieNodeAlike};
 
-use super::{GeneralSam, GeneralSamNode, TransitionTable, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID};
+use super::{GeneralSam, GeneralSamNode, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID, TransitionTable};
 
 #[derive(Debug)]
 pub struct GeneralSamState<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>>> {
@@ -142,6 +142,7 @@ impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>> + Clone
             })
     }
 
+    #[allow(clippy::type_complexity)]
     fn wrap_travel_along_callback<
         's,
         TN: TrieNodeAlike<InnerType = TransTable::KeyType>,
@@ -157,7 +158,7 @@ impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>> + Clone
     ) -> impl FnMut(
         TravelEvent<&TN, (Self, ExtraType), TN::InnerType>,
     ) -> Result<(Self, ExtraType), ErrorType>
-           + 's {
+    + 's {
         move |event| match event {
             TravelEvent::PushRoot(trie_root) => {
                 let res = callback(TravelEvent::PushRoot((self, trie_root)))?;
@@ -167,7 +168,7 @@ impl<TransTable: TransitionTable, SamRef: Borrow<GeneralSam<TransTable>> + Clone
                 let mut next_state = cur_state.clone();
                 next_state.goto(&key);
                 let next_extra =
-                    callback(TravelEvent::Push((&next_state, &cur_tn), cur_extra, key))?;
+                    callback(TravelEvent::Push((&next_state, cur_tn), cur_extra, key))?;
                 Ok((next_state, next_extra))
             }
             TravelEvent::Pop(cur_tn, (cur_state, extra)) => {

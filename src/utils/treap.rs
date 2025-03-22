@@ -27,7 +27,7 @@ pub struct TreapTree<DataType: TreapNodeData>(Option<Arc<TreapNode<DataType>>>);
 #[derive(Clone, Debug)]
 pub struct TreapNode<DataType: TreapNodeData> {
     pub data: DataType,
-    height: usize,
+    height: u64,
     _left: TreapTree<DataType>,
     _right: TreapTree<DataType>,
 }
@@ -42,7 +42,7 @@ impl<DataType: TreapNodeData> TreapNode<DataType> {
         }
     }
 
-    fn new_from_rng<R: FnMut() -> usize>(data: DataType, mut rng: R) -> Self {
+    fn new_from_rng<R: FnMut() -> u64>(data: DataType, mut rng: R) -> Self {
         Self {
             data,
             height: rng(),
@@ -117,7 +117,7 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
         Self(Some(Arc::new(TreapNode::new(data))))
     }
 
-    pub fn new_from_rng<R: FnMut() -> usize>(data: DataType, rng: R) -> Self {
+    pub fn new_from_rng<R: FnMut() -> u64>(data: DataType, rng: R) -> Self {
         Self(Some(Arc::new(TreapNode::new_from_rng(data, rng))))
     }
 
@@ -163,7 +163,7 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
 
     #[must_use]
     pub fn split<F: FnMut(&mut TreapNode<DataType>) -> SplitTo>(&self, mut f: F) -> (Self, Self) {
-        if let Some(ref node_ref) = self.deref() {
+        if let Some(node_ref) = self.deref() {
             let mut node = node_ref.deref().clone();
             match f(&mut node) {
                 SplitTo::Left => {
@@ -187,7 +187,7 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
         &self,
         mut f: F,
     ) -> Option<Cow<DataType>> {
-        if let Some(ref node_ref) = self.deref() {
+        if let Some(node_ref) = self.deref() {
             match f(node_ref) {
                 std::cmp::Ordering::Equal => Some(Cow::Borrowed(&node_ref.data)),
                 std::cmp::Ordering::Less => match node_ref.get_left() {

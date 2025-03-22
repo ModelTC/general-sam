@@ -125,11 +125,11 @@ pub trait TreapBasedRopeBase:
     + Deref<Target = TreapTree<RopeTreapData<Self::InnerRopeData>>>
     + From<TreapTree<RopeTreapData<Self::InnerRopeData>>>
 {
-    fn new_from_rng<R: FnMut() -> usize>(data: Self::InnerRopeData, rng: R) -> Self {
+    fn new_from_rng<R: FnMut() -> u64>(data: Self::InnerRopeData, rng: R) -> Self {
         TreapTree::new_from_rng(RopeTreapData::new(data), rng).into()
     }
 
-    fn insert_from_rng<R: FnMut() -> usize>(
+    fn insert_from_rng<R: FnMut() -> u64>(
         &self,
         pos: usize,
         data: Self::InnerRopeData,
@@ -139,11 +139,11 @@ pub trait TreapBasedRopeBase:
         left.merge(&Self::new_from_rng(data, rng)).merge(&right)
     }
 
-    fn push_back_from_rng<R: FnMut() -> usize>(&self, data: Self::InnerRopeData, rng: R) -> Self {
+    fn push_back_from_rng<R: FnMut() -> u64>(&self, data: Self::InnerRopeData, rng: R) -> Self {
         self.insert_from_rng(self.len(), data, rng)
     }
 
-    fn push_front_from_rng<R: FnMut() -> usize>(&self, data: Self::InnerRopeData, rng: R) -> Self {
+    fn push_front_from_rng<R: FnMut() -> u64>(&self, data: Self::InnerRopeData, rng: R) -> Self {
         self.insert_from_rng(0, data, rng)
     }
 
@@ -164,19 +164,19 @@ pub trait TreapBasedRopeBase:
 }
 
 impl<
-        InnerRopeData: RopeData,
-        TreapBasedRope: From<TreapTree<RopeTreapData<InnerRopeData>>>
-            + Deref<Target = TreapTree<RopeTreapData<InnerRopeData>>>
-            + Clone,
-    > TreapBasedRopeBase for TreapBasedRope
+    InnerRopeData: RopeData,
+    TreapBasedRope: From<TreapTree<RopeTreapData<InnerRopeData>>>
+        + Deref<Target = TreapTree<RopeTreapData<InnerRopeData>>>
+        + Clone,
+> TreapBasedRopeBase for TreapBasedRope
 {
 }
 impl<
-        InnerRopeData: RopeData,
-        TreapBasedRope: From<TreapTree<RopeTreapData<InnerRopeData>>>
-            + Deref<Target = TreapTree<RopeTreapData<InnerRopeData>>>
-            + Clone,
-    > RopeBase for TreapBasedRope
+    InnerRopeData: RopeData,
+    TreapBasedRope: From<TreapTree<RopeTreapData<InnerRopeData>>>
+        + Deref<Target = TreapTree<RopeTreapData<InnerRopeData>>>
+        + Clone,
+> RopeBase for TreapBasedRope
 {
     type InnerRopeData = InnerRopeData;
 
