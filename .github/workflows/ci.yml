@@ -8,6 +8,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   build_and_test:
     name: Build & Test
