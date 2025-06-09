@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hint::black_box};
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
 use general_sam::{
     BTreeTransTable, GeneralSam, TransitionTable, Trie,
     table::{BoxBisectTable, HashTransTable, VecBisectTable},
