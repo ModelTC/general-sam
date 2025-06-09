@@ -2,7 +2,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
-    iter::repeat,
+    iter::repeat_n,
     marker::PhantomData,
 };
 
@@ -335,7 +335,7 @@ impl<
 {
     fn default() -> Self {
         Self {
-            inner: C::from_iter(repeat(None).take(K::SIZE)),
+            inner: C::from_iter(repeat_n(None, K::SIZE)),
             phantom: Default::default(),
         }
     }

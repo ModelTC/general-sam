@@ -16,9 +16,9 @@ pub const SAM_ROOT_NODE_ID: GeneralSamNodeID = 1;
 #[derive(Clone, Debug)]
 pub struct GeneralSamNode<TransTable: TransitionTable> {
     trans: TransTable,
-    accept: bool,
     len: usize,
     link: GeneralSamNodeID,
+    accept: bool,
 }
 
 /// A general suffix automaton.
