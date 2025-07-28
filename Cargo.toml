@@ -24,7 +24,7 @@ all = ["trie", "utils"]
 rand = { version = "0.9.1", optional = true }
 
 [dev-dependencies]
-criterion = "0.6.0"
+criterion = "0.7.0"
 rand = "0.9.1"
 tokenizers = "0.21.1"
 
