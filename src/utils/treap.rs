@@ -65,7 +65,7 @@ impl<DataType: TreapNodeData> TreapNode<DataType> {
     }
 
     #[must_use]
-    pub fn get_left(&self) -> Cow<TreapTree<DataType>> {
+    pub fn get_left(&self) -> Cow<'_, TreapTree<DataType>> {
         match self.data.get_tag() {
             Some(tag) => Cow::Owned(self._left.add_tag(tag)),
             None => Cow::Borrowed(&self._left),
@@ -73,7 +73,7 @@ impl<DataType: TreapNodeData> TreapNode<DataType> {
     }
 
     #[must_use]
-    pub fn get_right(&self) -> Cow<TreapTree<DataType>> {
+    pub fn get_right(&self) -> Cow<'_, TreapTree<DataType>> {
         match self.data.get_tag() {
             Some(tag) => Cow::Owned(self._right.add_tag(tag)),
             None => Cow::Borrowed(&self._right),
@@ -186,7 +186,7 @@ impl<DataType: TreapNodeData> TreapTree<DataType> {
     pub fn query<F: FnMut(&TreapNode<DataType>) -> std::cmp::Ordering>(
         &self,
         mut f: F,
-    ) -> Option<Cow<DataType>> {
+    ) -> Option<Cow<'_, DataType>> {
         if let Some(node_ref) = self.deref() {
             match f(node_ref) {
                 std::cmp::Ordering::Equal => Some(Cow::Borrowed(&node_ref.data)),

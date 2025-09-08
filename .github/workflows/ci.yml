@@ -27,6 +27,10 @@ jobs:
         with:
           fetch-depth: 0
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: rustup component add clippy
+      - run: cargo clippy
+        env:
+          RUSTFLAGS: "-D warnings"
       - run: cargo build --verbose
       - run: cargo test --verbose
       - run: cargo build --all-features --verbose

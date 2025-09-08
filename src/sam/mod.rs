@@ -284,12 +284,12 @@ impl<TransTable: ConstructiveTransitionTable> GeneralSam<TransTable> {
         self.node_pool[clone_node_id].len = self.node_pool[p_node_id].len + 1;
         while p_node_id != SAM_NIL_NODE_ID {
             let p_node = &mut self.node_pool[p_node_id];
-            if let Some(t_node_id) = p_node.trans.get_mut(&key) {
-                if *t_node_id == q_node_id {
-                    *t_node_id = clone_node_id;
-                    p_node_id = p_node.link;
-                    continue;
-                }
+            if let Some(t_node_id) = p_node.trans.get_mut(&key)
+                && *t_node_id == q_node_id
+            {
+                *t_node_id = clone_node_id;
+                p_node_id = p_node.link;
+                continue;
             }
             break;
         }

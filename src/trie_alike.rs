@@ -62,12 +62,12 @@ pub trait TrieNodeAlike {
         stack.push((self.clone(), self.next_states(), extra));
 
         while !stack.is_empty() {
-            if let Some((_, iter, extra)) = stack.last_mut() {
-                if let Some((key, next_state)) = iter.next() {
-                    let new_extra = callback(TravelEvent::Push(&next_state, extra, key))?;
-                    stack.push((next_state.clone(), next_state.next_states(), new_extra));
-                    continue;
-                }
+            if let Some((_, iter, extra)) = stack.last_mut()
+                && let Some((key, next_state)) = iter.next()
+            {
+                let new_extra = callback(TravelEvent::Push(&next_state, extra, key))?;
+                stack.push((next_state.clone(), next_state.next_states(), new_extra));
+                continue;
             }
             if let Some((cur, _, extra)) = stack.pop() {
                 callback(TravelEvent::Pop(&cur, extra))?;

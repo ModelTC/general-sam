@@ -147,7 +147,7 @@ pub trait TreapBasedRopeBase:
         self.insert_from_rng(0, data, rng)
     }
 
-    fn query(&self, mut pos: usize) -> Option<Cow<RopeTreapData<Self::InnerRopeData>>> {
+    fn query(&self, mut pos: usize) -> Option<Cow<'_, RopeTreapData<Self::InnerRopeData>>> {
         self.deref().query(|node| {
             let left_size = node
                 .get_left()

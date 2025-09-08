@@ -108,11 +108,12 @@ impl<
         let mut res = Vec::new();
 
         let push = |res: &mut Vec<_>, token_id: TokenIDType, token_len: usize| {
-            if let Some((last_token_id, last_token_len)) = res.last_mut() {
-                if *last_token_id == *unk_token_id && token_id == *unk_token_id {
-                    *last_token_len += token_len;
-                    return;
-                }
+            if let Some((last_token_id, last_token_len)) = res.last_mut()
+                && *last_token_id == *unk_token_id
+                && token_id == *unk_token_id
+            {
+                *last_token_len += token_len;
+                return;
             }
             res.push((token_id, token_len))
         };
@@ -221,11 +222,12 @@ pub mod trie {
         let mut res = Vec::new();
 
         let push = |res: &mut Vec<_>, token_id: usize, token_len: usize| {
-            if let Some((last_token_id, last_token_len)) = res.last_mut() {
-                if *last_token_id == unk_token_id && token_id == unk_token_id {
-                    *last_token_len += token_len;
-                    return;
-                }
+            if let Some((last_token_id, last_token_len)) = res.last_mut()
+                && *last_token_id == unk_token_id
+                && token_id == unk_token_id
+            {
+                *last_token_len += token_len;
+                return;
             }
             res.push((token_id, token_len))
         };
