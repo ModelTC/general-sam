@@ -1,19 +1,15 @@
 name: Cargo Build & Test
-
 on:
   push:
   pull_request:
   workflow_dispatch:
-
 env:
   CARGO_TERM_COLOR: always
-
 permissions:
   contents: read
   pull-requests: read
-
 jobs:
-  build_and_test:
+  build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
     strategy:
@@ -39,7 +35,6 @@ jobs:
       - run: cargo check-all-features -- --verbose
       - run: cargo build-all-features -- --verbose
       - run: cargo test-all-features -- --verbose
-
   rustfmt:
     name: Check Format
     runs-on: ubuntu-latest
@@ -50,8 +45,7 @@ jobs:
       - run: rustup update stable && rustup default stable
       - run: rustup component add rustfmt
       - run: cargo fmt --all --check
-
-  build_docs:
+  docs:
     name: Docs
     runs-on: ubuntu-latest
     steps:
@@ -60,3 +54,22 @@ jobs:
           fetch-depth: 0
       - run: rustup update nightly && rustup default nightly
       - run: RUSTDOCFLAGS="--cfg doc_cfg --html-in-header ./docs-header.html" cargo +nightly doc --all-features --no-deps
+  dependabot:
+    name: Dependabot Auto-merge
+    if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'}}
+    needs: [build-and-test, rustfmt, docs]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --squash --auto "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
