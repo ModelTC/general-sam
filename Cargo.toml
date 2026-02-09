@@ -21,11 +21,11 @@ utils = ["rand"]
 all = ["trie", "utils"]
 
 [dependencies]
-rand = { version = "0.9.2", optional = true }
+rand = { version = "0.10.0", optional = true }
 
 [dev-dependencies]
 criterion = "0.8.0"
-rand = "0.9.2"
+rand = "0.10.0"
 tokenizers = "0.22.0"
 
 [[bench]]
