@@ -26,7 +26,7 @@ rand = { version = "0.9.2", optional = true }
 [dev-dependencies]
 criterion = "0.8.0"
 rand = "0.9.2"
-tokenizers = "0.22.0"
+tokenizers = "0.23.1"
 
 [[bench]]
 name = "tokenize"
