@@ -1,16 +1,14 @@
-use std::{collections::HashMap, hint::black_box};
+use std::collections::HashMap;
+use std::hint::black_box;
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use general_sam::{
-    BTreeTransTable, GeneralSam, TransitionTable, Trie,
-    table::{BoxBisectTable, HashTransTable, VecBisectTable},
-    tokenize::{GreedyTokenizer, trie::greedy_tokenize_with_trie},
-};
-use rand::{
-    Rng, SeedableRng,
-    distr::{Alphanumeric, SampleString},
-    rngs::StdRng,
-};
+use general_sam::table::{BoxBisectTable, HashTransTable, VecBisectTable};
+use general_sam::tokenize::GreedyTokenizer;
+use general_sam::tokenize::trie::greedy_tokenize_with_trie;
+use general_sam::{BTreeTransTable, GeneralSam, TransitionTable, Trie};
+use rand::distr::{Alphanumeric, SampleString};
+use rand::rngs::StdRng;
+use rand::{RngExt, SeedableRng};
 use tokenizers::{Model, Tokenizer as HFTokenizer};
 
 type Vocab = HashMap<String, u32>;
@@ -112,7 +110,7 @@ fn gen_seq(vocab: &Vocab) -> String {
 
 fn load_hf_tokenizer() -> Option<HFTokenizer> {
     std::env::var_os("HF_TOKENIZER").map(|p| {
-        println!("loading {:?}...", &p);
+        println!("loading {:?}...", p);
         HFTokenizer::from_file(p).expect("failed to load hf tokenizer")
     })
 }

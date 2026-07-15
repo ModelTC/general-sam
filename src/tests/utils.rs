@@ -72,24 +72,19 @@ fn test_rope() {
 
 #[cfg(feature = "trie")]
 mod trie {
-    use std::{collections::BTreeMap, ops::Deref};
+    use std::collections::BTreeMap;
+    use std::ops::Deref;
 
-    use rand::{
-        Rng, SeedableRng,
-        distr::{Alphanumeric, SampleString},
-        rngs::StdRng,
-    };
+    use rand::distr::{Alphanumeric, SampleString};
+    use rand::rngs::StdRng;
+    use rand::{RngExt, SeedableRng};
 
-    use crate::{
-        BTreeTransTable, GeneralSam, TransitionTable, Trie,
-        table::{BoxBisectTable, HashTransTable, VecBisectTable, WholeAlphabetTable},
-        tokenize::trie::greedy_tokenize_with_trie,
-        utils::{
-            rope::RopeBase,
-            suffixwise::{SuffixInTrie, SuffixInTrieData},
-            tokenize::GreedyTokenizer,
-        },
-    };
+    use crate::table::{BoxBisectTable, HashTransTable, VecBisectTable, WholeAlphabetTable};
+    use crate::tokenize::trie::greedy_tokenize_with_trie;
+    use crate::utils::rope::RopeBase;
+    use crate::utils::suffixwise::{SuffixInTrie, SuffixInTrieData};
+    use crate::utils::tokenize::GreedyTokenizer;
+    use crate::{BTreeTransTable, GeneralSam, TransitionTable, Trie};
 
     #[test]
     fn test_suffix_in_trie_data() {

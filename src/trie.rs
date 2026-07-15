@@ -1,6 +1,7 @@
 //! Trie, supporting `TrieNodeAlike`.
 
-use std::{borrow::Borrow, ops::Deref};
+use std::borrow::Borrow;
+use std::ops::Deref;
 
 use crate::{ConstructiveTransitionTable, GeneralSamNodeID, TransitionTable, TrieNodeAlike};
 

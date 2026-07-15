@@ -1,5 +1,5 @@
-//! A trait for constructing `GeneralSam` from structures that form a trie,
-//! and some utilities to construct `GeneralSam` from iterators.
+//! A trait for constructing `GeneralSam` from structures that form a trie, and
+//! some utilities to construct `GeneralSam` from iterators.
 
 use std::collections::VecDeque;
 
@@ -10,8 +10,8 @@ pub enum TravelEvent<'s, NodeType, ExtraType, KeyType> {
     Pop(NodeType, ExtraType),
 }
 
-/// This trait provides the essential interfaces required by `GeneralSam`
-/// to construct a suffix automaton from structures that form a trie (prefix tree).
+/// This trait provides the essential interfaces required by `GeneralSam` to
+/// construct a suffix automaton from structures that form a trie (prefix tree).
 pub trait TrieNodeAlike {
     type InnerType;
     type NextStateIter: Iterator<Item = (Self::InnerType, Self)>;

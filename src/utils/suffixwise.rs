@@ -1,11 +1,13 @@
 //! Utilities to store suffix-wise data in a suffix automaton.
 
-use std::{collections::LinkedList, convert::Infallible, ops::Deref};
+use std::collections::LinkedList;
+use std::convert::Infallible;
+use std::ops::Deref;
 
+use crate::rope::{Rope, RopeBase, RopeData, RopeUntaggedInner, TreapBasedRopeBase};
 use crate::{
     GeneralSam, GeneralSamState, SAM_NIL_NODE_ID, SAM_ROOT_NODE_ID, TransitionTable, TravelEvent,
     TrieNodeAlike,
-    rope::{Rope, RopeBase, RopeData, RopeUntaggedInner, TreapBasedRopeBase},
 };
 
 #[derive(Clone, Default, Debug)]

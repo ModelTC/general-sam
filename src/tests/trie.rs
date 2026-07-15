@@ -1,8 +1,6 @@
-use rand::{
-    Rng, SeedableRng,
-    distr::{Alphanumeric, SampleString},
-    rngs::StdRng,
-};
+use rand::distr::{Alphanumeric, SampleString};
+use rand::rngs::StdRng;
+use rand::{RngExt, SeedableRng};
 
 use crate::{BTreeTransTable, GeneralSam, SAM_ROOT_NODE_ID, Trie};
 

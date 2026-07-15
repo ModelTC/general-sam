@@ -1,10 +1,8 @@
 //! Transition table backends.
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    iter::repeat_n,
-    marker::PhantomData,
-};
+use std::collections::{BTreeMap, HashMap};
+use std::iter::repeat_n;
+use std::marker::PhantomData;
 
 use crate::GeneralSamNodeID;
 

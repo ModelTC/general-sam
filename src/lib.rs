@@ -27,7 +27,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use general_sam::{GeneralSam, BTreeTransTable};
+//! use general_sam::{BTreeTransTable, GeneralSam};
 //!
 //! let sam = GeneralSam::<BTreeTransTable<_>>::from_bytes("abcbc");
 //!
@@ -39,7 +39,7 @@
 //! ```
 //!
 //! ```rust
-//! use general_sam::{GeneralSam, BTreeTransTable};
+//! use general_sam::{BTreeTransTable, GeneralSam};
 //!
 //! let sam = GeneralSam::<BTreeTransTable<_>>::from_chars("abcbc");
 //!
@@ -64,7 +64,7 @@
 //!
 //! ```rust
 //! # #[cfg(feature = "trie")] {
-//! use general_sam::{GeneralSam, Trie, BTreeTransTable};
+//! use general_sam::{BTreeTransTable, GeneralSam, Trie};
 //!
 //! let mut trie = Trie::<BTreeTransTable<_>>::default();
 //! trie.insert("hello".chars());
@@ -86,8 +86,8 @@
 //!
 //! # References
 //!
-//! - [Mehryar Mohri, Pedro Moreno, Eugene Weinstein.
-//!   General suffix automaton construction algorithm and space bounds.][paper]
+//! - [Mehryar Mohri, Pedro Moreno, Eugene Weinstein. General suffix automaton
+//!   construction algorithm and space bounds.][paper]
 //! - 刘研绎《后缀自动机在字典树上的拓展》
 //! - [广义后缀自动机 - OI Wiki][general-sam-oi-wiki]
 //!
@@ -97,17 +97,15 @@ pub mod sam;
 pub mod table;
 pub mod trie_alike;
 
-pub use {
-    sam::{
-        GeneralSam, GeneralSamNode, GeneralSamNodeID, GeneralSamState, SAM_NIL_NODE_ID,
-        SAM_ROOT_NODE_ID,
-    },
-    table::{
-        BTreeTransTable, BoxBisectTable, ConstructiveTransitionTable, HashTransTable,
-        SmallAlphabet, TransitionTable, VecBisectTable, WholeAlphabetTable,
-    },
-    trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike},
+pub use sam::{
+    GeneralSam, GeneralSamNode, GeneralSamNodeID, GeneralSamState, SAM_NIL_NODE_ID,
+    SAM_ROOT_NODE_ID,
 };
+pub use table::{
+    BTreeTransTable, BoxBisectTable, ConstructiveTransitionTable, HashTransTable, SmallAlphabet,
+    TransitionTable, VecBisectTable, WholeAlphabetTable,
+};
+pub use trie_alike::{IterAsChain, TravelEvent, TrieNodeAlike};
 
 #[cfg(feature = "trie")]
 pub mod trie;

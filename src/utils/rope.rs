@@ -1,6 +1,7 @@
 //! Persistent rope.
 
-use std::{borrow::Cow, ops::Deref};
+use std::borrow::Cow;
+use std::ops::Deref;
 
 use super::treap::{NeedSwap, SplitTo, TreapNodeData, TreapTree};
 

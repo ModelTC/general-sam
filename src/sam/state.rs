@@ -1,6 +1,7 @@
 //! States of a general suffix automaton.
 
-use std::{borrow::Borrow, marker::PhantomData};
+use std::borrow::Borrow;
+use std::marker::PhantomData;
 
 use crate::{TravelEvent, TrieNodeAlike};
 
