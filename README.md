@@ -7,8 +7,8 @@
 
 A general suffix automaton implementation in Rust.
 
-Python bindings and some utilities are also available.
-Please check out [`general-sam-py`](https://github.com/ModelTC/general-sam-py).
+Python bindings and some utilities are also available. Please check out
+[`general-sam-py`](https://github.com/ModelTC/general-sam-py).
 
 ```mermaid
 flowchart LR
@@ -106,13 +106,17 @@ assert!(sam.get_root_state().feed_chars("bye").is_nil());
 
 ## License
 
-- &copy; 2023-2026 ModelTC Team (Chielo <mail@chielo.org>)
+- &copy; 2023-2026 ModelTC Team (Chielo
+  \<[mail@chielo.org](mailto:mail@chielo.org)\>)
 
 This project is licensed under either of
 
-- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0) ([`LICENSE-APACHE`](LICENSE-APACHE))
-- [MIT license](https://opensource.org/licenses/MIT) ([`LICENSE-MIT`](LICENSE-MIT))
+- [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+  ([`LICENSE-APACHE`](LICENSE-APACHE))
+- [MIT license](https://opensource.org/licenses/MIT)
+  ([`LICENSE-MIT`](LICENSE-MIT))
 
 at your option.
 
-The [SPDX](https://spdx.dev) license identifier for this project is `MIT OR Apache-2.0`.
+The [SPDX](https://spdx.dev) license identifier for this project is
+`MIT OR Apache-2.0`.
