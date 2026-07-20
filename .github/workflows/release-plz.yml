@@ -1,9 +1,5 @@
 name: Release-plz
 
-permissions:
-  pull-requests: write
-  contents: write
-
 on:
   workflow_run:
     workflows: [Cargo Build & Test]
