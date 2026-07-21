@@ -11,9 +11,9 @@ readme = "README.md"
 exclude = ["release-plz.toml", "rustfmt.toml", ".github"]
 
 [package.metadata.docs.rs]
-# RUSTDOCFLAGS="--cfg doc_cfg --html-in-header ./docs-header.html" cargo +nightly doc --all-features --no-deps
+# RUSTDOCFLAGS="--cfg doc_cfg --html-in-header docs-header.html" cargo +nightly doc --all-features --no-deps
 all-features = true
-rustdoc-args = ["--cfg", "doc_cfg", "--html-in-header", "./docs-header.html"]
+rustdoc-args = ["--cfg", "doc_cfg", "--html-in-header", "docs-header.html"]
 
 [package.metadata.cargo-all-features]
 skip_optional_dependencies = true
