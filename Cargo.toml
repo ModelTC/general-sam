@@ -8,7 +8,7 @@ repository = "https://github.com/ModelTC/general-sam"
 homepage = "https://github.com/ModelTC/general-sam"
 documentation = "https://docs.rs/general-sam"
 readme = "README.md"
-exclude = ["release-plz.toml", ".github"]
+exclude = ["release-plz.toml", "rustfmt.toml", ".github"]
 
 [package.metadata.docs.rs]
 # RUSTDOCFLAGS="--cfg doc_cfg --html-in-header ./docs-header.html" cargo +nightly doc --all-features --no-deps
